@@ -22,7 +22,7 @@ A baseline SB2 parameter vector is
 with constraints
 
 \[
-P>0,\quad 0\le e<1,\quad M_1>0,\quad M_2>0,\quad \varpi>0,\quad 0<\beta_G<1.
+P>0,\quad 0\le e<1,\quad M_1>0,\quad M_2>0,\quad \varpi>0,\quad 0\le\beta_G\le1.
 \]
 
 For numerical inference, bounded/transformed parameters should be used rather than allowing the optimizer or sampler to enter an unphysical domain.
@@ -171,7 +171,7 @@ For scan angle \(\psi_k\), define the projected along-scan separation
 \Delta\delta_k\cos\psi_k,
 \]
 
-using one explicit angle convention throughout the code and tests.
+with the Gaia convention \(\psi=0\) toward local North and \(\psi=90^\circ\) toward local East.
 
 The projected component locations relative to the barycentre are
 
@@ -188,9 +188,23 @@ In the unresolved limit the photocentre along scan is
 
 ## 8. Resolution-aware Gaia response: prototype stage
 
-The first code stage implements the analytical/piecewise approximation used in Holl et al. (2023), based on the Lindegren (2022) close-double response treatment. It provides a deterministic along-scan bias as a function of projected separation and flux ratio and transitions between unresolved, marginally resolved, and resolved-primary regimes.
+Holl et al. (2023), adopting Lindegren (2022), give a piecewise analytical along-scan bias in which the marginal-resolution branch contains a calibrated dimensionless function \(B(f,x)\). We do **not** invent or approximate that unpublished/externally calibrated function as though it were known.
 
-This is **not** treated as the final Gaia instrument model.
+Instead, the first executable prototype follows the explicit conceptual treatment used in the marginal-resolution literature: the along-scan image is represented by two overlapping one-dimensional profiles. At the present stage they are equal-width Gaussians,
+
+\[
+I(x)=F_1\exp\left[-\frac{(x-x_1)^2}{2\sigma^2}\right]
++F_2\exp\left[-\frac{(x-x_2)^2}{2\sigma^2}\right],
+\]
+
+and the predicted measured coordinate is the position of the global maximum of \(I(x)\). The width \(\sigma\) is an explicit research parameter; it is **not** asserted to be Gaia's calibrated LSF width.
+
+This surrogate has two required limiting behaviours that are tested in code:
+
+1. as \(|x_2-x_1|/\sigma\rightarrow0\), the peak tends to the flux-weighted photocentre;
+2. for a sufficiently separated unequal-flux pair, the global maximum tends to the brighter component.
+
+This makes the prototype suitable for controlled injection experiments on the *principle* of resolution-aware inference, but not for precision inference from real Gaia epoch images.
 
 The final DR4 image-level model should instead predict calibrated sample values schematically as
 
@@ -198,7 +212,7 @@ The final DR4 image-level model should instead predict calibrated sample values 
 D_{kj}^{\rm model}=F_{1,k}L_k(x_j-x_{1,k})+F_{2,k}L_k(x_j-x_{2,k})+b_{kj},
 \]
 
-where \(L_k\) is the appropriate calibrated line-spread/point-spread response and \(b_{kj}\) is background. The exact likelihood must be derived from the released DR4 data model and calibration metadata rather than assumed in advance.
+where \(L_k\) is the appropriate calibrated line-spread/point-spread response and \(b_{kj}\) is background. Rowell et al. (2021) show that Gaia PSF/LSF calibration is substantially more detailed than a fixed Gaussian. The exact DR4 likelihood must therefore be derived from the released data model and calibration metadata rather than assumed in advance.
 
 ## 9. Absolute astrometric motion
 
@@ -258,7 +272,7 @@ as projected separation tends to zero.
 
 ### V3 — resolved-primary limit
 
-At sufficiently large projected separation, verify that the model approaches the selected component location rather than an unresolved photocentre.
+At sufficiently large projected separation for an unequal-flux pair, verify that the surrogate approaches the brighter component location rather than an unresolved photocentre.
 
 ### V4 — scan-angle experiment
 
