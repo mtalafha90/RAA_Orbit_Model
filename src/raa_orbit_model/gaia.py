@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import numpy as np
-from scipy.optimize import minimize_scalar
 
 
 def project_along_scan(delta_alpha_star_mas, delta_delta_mas, scan_angle_deg):
-    """Gaia-convention tangent-plane projection: psi=0 points North, 90 deg East."""
+    """Project tangent-plane East/North offsets onto Gaia-like along-scan axes.
+
+    Convention: scan angle psi=0 points North and psi=90 deg points East.
+    """
     psi = np.deg2rad(np.asarray(scan_angle_deg, dtype=float))
     east = np.asarray(delta_alpha_star_mas, dtype=float)
     north = np.asarray(delta_delta_mas, dtype=float)
@@ -18,43 +20,67 @@ def photocentre_along_scan(relative_al_mas, mass_fraction_secondary, beta_g):
 
 
 def component_al_positions(relative_al_mas, mass_fraction_secondary):
-    """Primary and secondary AL locations relative to the barycentre."""
+    """Primary and secondary along-scan positions relative to barycentre."""
     d = np.asarray(relative_al_mas, dtype=float)
     B = float(mass_fraction_secondary)
     return -B * d, (1.0 - B) * d
 
 
-def blended_gaussian_peak(relative_al_mas, mass_fraction_secondary, beta_g, sigma_mas):
-    """Prototype marginal-resolution response from two equal-width 1-D profiles.
+def blended_gaussian_peak(relative_al_mas, mass_fraction_secondary, beta_g, sigma_mas,
+                          grid_size: int = 129, newton_steps: int = 12):
+    """Prototype resolution-aware coordinate from two equal-width 1-D profiles.
 
-    Returns the location of the global maximum of
-        F1 exp[-(x-x1)^2/(2 sigma^2)] + F2 exp[-(x-x2)^2/(2 sigma^2)].
+    The measured coordinate is defined as the global maximum of
 
-    This is a research surrogate, not Gaia's calibrated LSF. `sigma_mas` is
-    deliberately explicit and must be calibrated/replaced for real Gaia data.
-    Component 1 is assumed to be the brighter/equal source (beta_g <= 0.5).
+        I(x) = F1 exp[-(x-x1)^2/(2 sigma^2)]
+             + F2 exp[-(x-x2)^2/(2 sigma^2)].
+
+    A coarse vectorized grid identifies the correct maximum basin, followed by
+    Newton refinement of dI/dx=0. This is a research surrogate, not Gaia's
+    calibrated LSF. Component 1 is assumed to be brighter/equal (beta_g <= 0.5).
     """
     if sigma_mas <= 0:
         raise ValueError("sigma_mas must be > 0")
     if not (0.0 <= beta_g <= 0.5):
         raise ValueError("prototype assumes component 1 is brighter: 0 <= beta_g <= 0.5")
+    if grid_size < 17:
+        raise ValueError("grid_size must be >= 17")
+
+    scalar = np.ndim(relative_al_mas) == 0
     d = np.atleast_1d(np.asarray(relative_al_mas, dtype=float))
     x1, x2 = component_al_positions(d, mass_fraction_secondary)
     f1, f2 = 1.0 - beta_g, beta_g
-    out = np.empty_like(d)
-    for k, (a, b) in enumerate(zip(np.atleast_1d(x1), np.atleast_1d(x2))):
-        lo = min(a, b) - 5.0 * sigma_mas
-        hi = max(a, b) + 5.0 * sigma_mas
+    sigma = float(sigma_mas)
 
-        def neg_profile(x):
-            return -(f1 * np.exp(-0.5 * ((x-a)/sigma_mas)**2)
-                     + f2 * np.exp(-0.5 * ((x-b)/sigma_mas)**2))
+    lo = np.minimum(x1, x2) - 5.0 * sigma
+    hi = np.maximum(x1, x2) + 5.0 * sigma
+    frac = np.linspace(0.0, 1.0, grid_size)
+    grid = lo[:, None] + (hi - lo)[:, None] * frac[None, :]
+    z1 = (grid - x1[:, None]) / sigma
+    z2 = (grid - x2[:, None]) / sigma
+    profile = f1 * np.exp(-0.5 * z1**2) + f2 * np.exp(-0.5 * z2**2)
+    idx = np.argmax(profile, axis=1)
+    x = grid[np.arange(len(d)), idx].copy()
 
-        grid = np.linspace(lo, hi, 257)
-        vals = np.array([neg_profile(x) for x in grid])
-        j = int(np.argmin(vals))
-        left = grid[max(0, j-1)]
-        right = grid[min(len(grid)-1, j+1)]
-        res = minimize_scalar(neg_profile, bounds=(left, right), method="bounded")
-        out[k] = res.x
-    return out if np.ndim(relative_al_mas) else float(out[0])
+    # Newton refinement. The basin selection above protects against converging
+    # to the weaker local maximum when the pair becomes bimodal.
+    for _ in range(newton_steps):
+        dx1 = x - x1
+        dx2 = x - x2
+        e1 = np.exp(-0.5 * (dx1 / sigma)**2)
+        e2 = np.exp(-0.5 * (dx2 / sigma)**2)
+        dI = -(f1 * dx1 * e1 + f2 * dx2 * e2) / sigma**2
+        d2I = (
+            f1 * ((dx1**2 / sigma**4) - 1.0 / sigma**2) * e1
+            + f2 * ((dx2**2 / sigma**4) - 1.0 / sigma**2) * e2
+        )
+        safe = np.abs(d2I) > 1e-18
+        step = np.zeros_like(x)
+        step[safe] = dI[safe] / d2I[safe]
+        x_new = np.clip(x - step, lo, hi)
+        if np.max(np.abs(x_new - x)) < 1e-12:
+            x = x_new
+            break
+        x = x_new
+
+    return float(x[0]) if scalar else x
