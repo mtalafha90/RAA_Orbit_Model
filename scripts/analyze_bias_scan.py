@@ -4,6 +4,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import pandas as pd
+
 from raa_orbit_model.bias_analysis import (
     build_paired_results,
     compact_delta_chi2_table,
@@ -12,6 +14,30 @@ from raa_orbit_model.bias_analysis import (
     summarize_paired_results,
     write_analysis_tables,
 )
+
+
+def _check_scientific_validity(path: Path, parser: argparse.ArgumentParser) -> None:
+    raw = pd.read_csv(path)
+    if "scientific_valid" not in raw.columns:
+        return
+    values = raw["scientific_valid"]
+    if pd.api.types.is_bool_dtype(values):
+        valid = values.astype(bool)
+    else:
+        normalized = values.astype(str).str.strip().str.lower()
+        mapping = {"true": True, "1": True, "false": False, "0": False}
+        if not normalized.isin(mapping).all():
+            parser.error("scientific_valid contains unrecognized boolean values")
+        valid = normalized.map(mapping).astype(bool)
+    if (~valid).any():
+        cols = ["true_beta_g", "a_over_sigma", "seed", "model"]
+        if "gaia_final_multi_peak_predicted" in raw.columns:
+            cols.append("gaia_final_multi_peak_predicted")
+        sample = raw.loc[~valid, cols].head().to_dict("records")
+        parser.error(
+            "input contains optimizer-converged rows outside the single-peak "
+            f"surrogate validity domain; examples: {sample}"
+        )
 
 
 def main() -> None:
@@ -41,6 +67,7 @@ def main() -> None:
         else input_path.with_name(f"{input_path.stem}_analysis")
     )
 
+    _check_scientific_validity(input_path, parser)
     df = load_bias_results(input_path)
     paired = build_paired_results(df)
     summary = summarize_paired_results(paired)

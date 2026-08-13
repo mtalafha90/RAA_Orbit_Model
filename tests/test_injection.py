@@ -1,10 +1,13 @@
 import numpy as np
 import pytest
 
-from raa_orbit_model.experiments import compare_models_once
+from raa_orbit_model.experiments import (
+    compare_models_once,
+    single_peak_schedule_for_response,
+)
 from raa_orbit_model.fit import fit_joint
 from raa_orbit_model.kepler import BinaryParams
-from raa_orbit_model.model import GaiaResponseConfig
+from raa_orbit_model.model import GaiaResponseConfig, predict_relative_astrometry
 from raa_orbit_model.scanning import schedule_from_arrays
 from raa_orbit_model.synthetic import simulate_joint_data
 
@@ -28,8 +31,6 @@ def truth(**kw):
 
 
 def test_schedule(n=80, span_yr=5.0):
-    # Deterministic nonuniform fixture for unit tests only; scientific runs use
-    # a GOST/gaiascanlaw schedule or an archived schedule CSV.
     u = (np.arange(n, dtype=float) + 0.5) / n
     times = span_yr * u**1.35
     angles = np.mod(31.0 + 211.0 * u + 53.0 * np.sin(9.0 * u), 360.0)
@@ -57,7 +58,7 @@ def test_noise_free_joint_recovery_of_key_physical_parameters():
         rv_sigma_kms=1e-5,
         gaia_sigma_mas=1e-5,
     )
-    from raa_orbit_model.model import predict_relative_astrometry, predict_sb2_rv, predict_gaia_orbital_al
+    from raa_orbit_model.model import predict_sb2_rv, predict_gaia_orbital_al
     from raa_orbit_model.synthetic import RelativeAstrometryData, SB2RVData, GaiaALData, JointData
     ast = data.relative_astrometry
     rv = data.sb2_rv
@@ -102,6 +103,32 @@ def test_noise_free_joint_recovery_of_key_physical_parameters():
     assert result.params.m2_msun == pytest.approx(p.m2_msun, rel=1e-6)
     assert result.params.parallax_mas == pytest.approx(p.parallax_mas, rel=1e-6)
     assert result.params.beta_g == pytest.approx(p.beta_g, abs=1e-6)
+
+
+def test_single_peak_schedule_filters_aligned_equal_light_epoch():
+    p = truth(beta_g=0.5, parallax_mas=100.0)
+    t = 0.5
+    east, north = predict_relative_astrometry(np.array([t]), p)[0]
+    psi_aligned = np.degrees(np.arctan2(east, north))
+    psi_perpendicular = psi_aligned + 90.0
+    schedule = schedule_from_arrays(
+        [t, t],
+        [psi_aligned, psi_perpendicular],
+        ra_deg=20.0,
+        dec_deg=45.0,
+        release="custom",
+        source="mode-filter-test",
+    )
+    selection = single_peak_schedule_for_response(
+        p,
+        schedule,
+        GaiaResponseConfig("blended_gaussian_peak", 30.0),
+    )
+    assert selection.n_total == 2
+    assert selection.n_multi_peak == 1
+    assert selection.n_single_peak == 1
+    assert selection.schedule.n_transits == 1
+    assert selection.multi_peak_fraction == pytest.approx(0.5)
 
 
 def test_resolution_aware_fit_beats_misspecified_photocentre_in_resolved_regime():
