@@ -8,11 +8,14 @@ import pandas as pd
 
 from raa_orbit_model.bias_analysis import (
     build_paired_results,
+    build_regime_boundary_table,
     compact_delta_chi2_table,
     load_bias_results,
+    make_regime_map,
     make_transition_plots,
     summarize_paired_results,
     write_analysis_tables,
+    write_regime_boundary_table,
 )
 
 
@@ -55,7 +58,7 @@ def main() -> None:
     )
     parser.add_argument("--prefix", default="transition", help="output filename prefix")
     parser.add_argument("--dpi", type=int, default=300, help="PNG resolution")
-    parser.add_argument("--no-plots", action="store_true", help="write paired/summary CSVs only")
+    parser.add_argument("--no-plots", action="store_true", help="write CSV tables only")
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -77,11 +80,20 @@ def main() -> None:
         output_dir,
         prefix=args.prefix,
     )
+    boundary = build_regime_boundary_table(summary, raw=df)
+    boundary_path = write_regime_boundary_table(
+        boundary,
+        output_dir,
+        prefix=args.prefix,
+    )
 
     print(compact_delta_chi2_table(summary).to_string(index=False))
     print()
+    print(boundary.to_string(index=False))
+    print()
     print(f"paired records: {paired_path}")
-    print(f"summary table:  {summary_path}")
+    print(f"summary table: {summary_path}")
+    print(f"regime boundaries: {boundary_path}")
 
     if not args.no_plots:
         plot_paths = make_transition_plots(
@@ -90,8 +102,17 @@ def main() -> None:
             prefix=args.prefix,
             dpi=args.dpi,
         )
+        plot_paths.extend(
+            make_regime_map(
+                summary,
+                output_dir,
+                raw=df,
+                prefix=args.prefix,
+                dpi=args.dpi,
+            )
+        )
         for path in plot_paths:
-            print(f"plot:           {path}")
+            print(f"plot: {path}")
 
 
 if __name__ == "__main__":
