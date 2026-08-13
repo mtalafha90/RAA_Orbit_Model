@@ -290,3 +290,177 @@ def compact_delta_chi2_table(summary: pd.DataFrame) -> pd.DataFrame:
         "delta_chi2_max",
     ]
     return summary[columns].copy()
+
+
+def _validate_regime_grid(summary: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+    required = {
+        "true_beta_g",
+        "a_over_sigma",
+        "delta_chi2_median",
+        "delta_chi2_q16",
+        "delta_chi2_min",
+    }
+    missing = required - set(summary.columns)
+    if missing:
+        raise ValueError(f"summary is missing regime-map columns: {sorted(missing)}")
+    if summary.duplicated(["true_beta_g", "a_over_sigma"]).any():
+        raise ValueError("regime map summary contains duplicate grid points")
+    betas = np.sort(summary["true_beta_g"].unique().astype(float))
+    ratios = np.sort(summary["a_over_sigma"].unique().astype(float))
+    expected = len(betas) * len(ratios)
+    if len(summary) != expected:
+        raise ValueError(
+            "regime map requires a complete rectangular (beta_G, a/sigma) grid; "
+            f"expected {expected} rows, found {len(summary)}"
+        )
+    return betas, ratios
+
+
+def _first_ratio(group: pd.DataFrame, condition: pd.Series) -> float:
+    selected = group.loc[condition].sort_values("a_over_sigma")
+    if selected.empty:
+        return np.nan
+    return float(selected.iloc[0]["a_over_sigma"])
+
+
+def build_regime_boundary_table(
+    summary: pd.DataFrame,
+    raw: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Build sampled descriptive boundaries for the 2-D response regime."""
+    betas, _ = _validate_regime_grid(summary)
+    multi = None
+    if raw is not None and "gaia_multi_peak_fraction" in raw.columns:
+        multi = (
+            raw.groupby(["true_beta_g", "a_over_sigma"], as_index=False)
+            .agg(gaia_multi_peak_fraction=("gaia_multi_peak_fraction", "max"))
+        )
+
+    rows = []
+    for beta in betas:
+        group = summary[summary["true_beta_g"] == beta].sort_values("a_over_sigma")
+        row = {
+            "true_beta_g": float(beta),
+            "q16_positive_a_over_sigma": _first_ratio(
+                group, group["delta_chi2_q16"] > 0.0
+            ),
+            "all_positive_a_over_sigma": _first_ratio(
+                group, group["delta_chi2_min"] > 0.0
+            ),
+            "median_gt10_a_over_sigma": _first_ratio(
+                group, group["delta_chi2_median"] > 10.0
+            ),
+            "multi_peak_onset_a_over_sigma": np.nan,
+        }
+        if multi is not None:
+            mgroup = multi[multi["true_beta_g"] == beta].sort_values("a_over_sigma")
+            if not mgroup.empty:
+                row["multi_peak_onset_a_over_sigma"] = _first_ratio(
+                    mgroup, mgroup["gaia_multi_peak_fraction"] > 0.0
+                )
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def write_regime_boundary_table(
+    boundary: pd.DataFrame,
+    output_dir: str | Path,
+    *,
+    prefix: str = "transition",
+) -> Path:
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    path = output_dir / f"{prefix}_regime_boundaries.csv"
+    boundary.to_csv(path, index=False)
+    return path
+
+
+def _grid_edges(values: np.ndarray) -> np.ndarray:
+    values = np.asarray(values, dtype=float)
+    if len(values) == 1:
+        return np.array([values[0] - 0.5, values[0] + 0.5])
+    mids = 0.5 * (values[:-1] + values[1:])
+    return np.concatenate((
+        [values[0] - 0.5 * (values[1] - values[0])],
+        mids,
+        [values[-1] + 0.5 * (values[-1] - values[-2])],
+    ))
+
+
+def make_regime_map(
+    summary: pd.DataFrame,
+    output_dir: str | Path,
+    *,
+    raw: pd.DataFrame | None = None,
+    prefix: str = "transition",
+    dpi: int = 300,
+) -> list[Path]:
+    """Create the 2-D single-peak photocentre-mismatch regime map.
+
+    The heatmap uses log10(1 + max(median Delta chi2, 0)); negative medians are
+    plotted at zero rather than passed to a logarithm. Curves mark the first
+    sampled a/sigma with q16>0, all seeds >0, and, when present in the raw scan,
+    any multi-peak surrogate epoch. These are descriptive grid boundaries, not
+    formal significance levels or Gaia instrumental resolution thresholds.
+    """
+    import matplotlib.pyplot as plt
+
+    betas, ratios = _validate_regime_grid(summary)
+    pivot = summary.pivot(
+        index="true_beta_g", columns="a_over_sigma", values="delta_chi2_median"
+    ).reindex(index=betas, columns=ratios)
+    if pivot.isna().any().any():
+        raise ValueError("regime map contains missing median Delta chi2 values")
+
+    values = np.log10(1.0 + np.clip(pivot.to_numpy(dtype=float), 0.0, None))
+    boundary = build_regime_boundary_table(summary, raw=raw)
+
+    fig, ax = plt.subplots(figsize=(7.2, 5.2))
+    mesh = ax.pcolormesh(
+        _grid_edges(ratios),
+        _grid_edges(betas),
+        values,
+        shading="flat",
+    )
+    cbar = fig.colorbar(mesh, ax=ax)
+    cbar.set_label(r"$\log_{10}[1+\max(\mathrm{median}\ \Delta\chi^2,0)]$")
+
+    for column, label, linestyle in (
+        ("q16_positive_a_over_sigma", r"$Q_{16}(\Delta\chi^2)>0$", "-"),
+        ("all_positive_a_over_sigma", r"all seeds: $\Delta\chi^2>0$", "--"),
+        ("multi_peak_onset_a_over_sigma", "multi-peak onset", ":"),
+    ):
+        points = boundary[["true_beta_g", column]].dropna()
+        if len(points) >= 2:
+            ax.plot(
+                points[column].to_numpy(),
+                points["true_beta_g"].to_numpy(),
+                marker="o",
+                linestyle=linestyle,
+                label=label,
+            )
+        elif len(points) == 1:
+            ax.scatter(
+                points[column].to_numpy(),
+                points["true_beta_g"].to_numpy(),
+                label=label,
+            )
+
+    ax.set_xlabel(r"$a_{\rm rel,ang}/\sigma$")
+    ax.set_ylabel(r"secondary light fraction $\beta_G$")
+    ax.set_title("Single-peak photocentre-mismatch regime")
+    handles, _ = ax.get_legend_handles_labels()
+    if handles:
+        ax.legend(frameon=False, fontsize="small")
+    fig.tight_layout()
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    paths = [
+        output_dir / f"{prefix}_regime_map.png",
+        output_dir / f"{prefix}_regime_map.pdf",
+    ]
+    fig.savefig(paths[0], dpi=dpi, bbox_inches="tight")
+    fig.savefig(paths[1], bbox_inches="tight")
+    plt.close(fig)
+    return paths
