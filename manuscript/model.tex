@@ -1,0 +1,127 @@
+\section{Joint Physical and Measurement Model}
+\label{sect:model}
+
+\subsection{Physical Parameterization}
+
+The baseline parameter vector is
+\begin{equation}
+\Theta=\{P,T_0,e,i,\Omega,\omega_1,M_1,M_2,\varpi,\gamma,\betag\},
+\label{eq:theta}
+\end{equation}
+where $\omega_1$ is the primary spectroscopic argument of periastron and $\Omega$ is measured from local North through East. The relative semi-major axis follows from Kepler's third law,
+\begin{equation}
+a_{\rm rel}^3=\frac{G(M_1+M_2)P^2}{4\pi^2},
+\end{equation}
+and the barycentric component axes are
+\begin{equation}
+a_1=a_{\rm rel}\frac{M_2}{M_1+M_2},\qquad
+a_2=a_{\rm rel}\frac{M_1}{M_1+M_2}.
+\end{equation}
+The velocity semi-amplitudes are therefore derived rather than independently fitted,
+\begin{equation}
+K_j=\frac{2\pi a_j\sin i}{P\sqrt{1-e^2}}.
+\end{equation}
+
+At time $t$, the mean anomaly is
+\begin{equation}
+M(t)=2\pi\frac{t-T_0}{P},
+\end{equation}
+the eccentric anomaly satisfies $M=E-e\sin E$, and
+\begin{equation}
+\nu=2\arctan2\!\left(\sqrt{1+e}\sin\frac{E}{2},
+\sqrt{1-e}\cos\frac{E}{2}\right).
+\end{equation}
+
+\subsection{Orbit Conventions and Relative Astrometry}
+
+A joint visual/SB2 model is vulnerable to a $180^\circ$ convention error if the same numerical argument of periastron is used simultaneously for the primary RV curve and for the relative vector $\mathbf r_2-\mathbf r_1$. We adopt
+\begin{equation}
+\omega_{\rm rel}=\omega_1+\pi,
+\label{eq:omegarel}
+\end{equation}
+consistent with the primary-star Campbell convention used in combined orbit work \citep{Leclerc2023}. For $u=\nu+\omega_{\rm rel}$ and instantaneous separation $r$, the relative North and East coordinates are
+\begin{align}
+\Delta N &= r(\cos\Omega\cos u-\sin\Omega\sin u\cos i),\\
+\Delta E &= r(\sin\Omega\cos u+\cos\Omega\sin u\cos i),
+\end{align}
+and the tangent-plane order used by the code is $(\Delta\alpha^\ast,\Delta\delta)=(\Delta E,\Delta N)$. The line-of-sight coordinate is positive away from the observer and is regression-tested to satisfy
+\begin{equation}
+\frac{dz_{\rm rel}}{dt}=RV_2-RV_1.
+\end{equation}
+
+For resolved astrometry, the angular model is obtained by scaling the physical relative vector with the parallax. The present synthetic experiments use isotropic $2\times2$ astrometric covariance matrices, but the likelihood implementation supports full covariance whitening.
+
+\subsection{SB2 Radial Velocities}
+
+The spectroscopic factor is
+\begin{equation}
+F(t)=\cos[\nu(t)+\omega_1]+e\cos\omega_1,
+\end{equation}
+and the component velocities are
+\begin{equation}
+RV_1=\gamma+K_1F(t),\qquad RV_2=\gamma-K_2F(t).
+\label{eq:rv}
+\end{equation}
+This convention satisfies barycentric momentum balance,
+\begin{equation}
+M_1(RV_1-\gamma)+M_2(RV_2-\gamma)=0.
+\end{equation}
+
+\subsection{Photocentre Limit}
+
+Define the secondary mass fraction and Gaia-band light fraction as
+\begin{equation}
+B=\frac{M_2}{M_1+M_2},\qquad
+\betag=\frac{F_{2,G}}{F_{1,G}+F_{2,G}}.
+\end{equation}
+For the relative vector $\mathbf r=\mathbf r_2-\mathbf r_1$, the unresolved photocentre relative to the barycentre is
+\begin{equation}
+\mathbf r_{\rm ph}=(\betag-B)\mathbf r.
+\label{eq:photocentre}
+\end{equation}
+For directional Gaia scan angle $\psi$, defined with $0^\circ$ toward North and $90^\circ$ toward East, the projected relative separation is
+\begin{equation}
+\Delta\eta=\Delta\alpha^\ast\sin\psi+\Delta\delta\cos\psi,
+\label{eq:alproj}
+\end{equation}
+and the unresolved along-scan photocentre is $(\betag-B)\Delta\eta$.
+
+\subsection{Resolution-Aware Gaussian Surrogate}
+
+The resolution-aware prototype represents the one-dimensional along-scan light profile as
+\begin{equation}
+I(x)=F_1\exp\!\left[-\frac{(x-x_1)^2}{2\sigma^2}\right]
++F_2\exp\!\left[-\frac{(x-x_2)^2}{2\sigma^2}\right].
+\label{eq:gaussian}
+\end{equation}
+The predicted coordinate in the current single-peak model is the location of the global maximum of $I(x)$. The width $\sigma$ is a research scaling parameter. It is neither fitted to nor identified with Gaia's calibrated line-spread function.
+
+The surrogate has two required limiting behaviours. As $|x_2-x_1|/\sigma\rightarrow0$, the maximum approaches the flux-weighted photocentre. For a sufficiently separated unequal-light pair, the maximum approaches the brighter component. These limits are tested numerically.
+
+\subsection{Single-Peak Validity Boundary}
+
+A single-coordinate likelihood becomes physically ambiguous once the Gaussian mixture develops two modes. For $F_1=1-\betag$, $F_2=\betag$ and projected component separation $s$, the transition is obtained by imposing simultaneous first- and second-derivative conditions. With $a=e^u$ and $b=e^{-u}$ one obtains
+\begin{equation}
+\sinh(2u)-2u=\ln\!\left(\frac{1-\betag}{\betag}\right),
+\end{equation}
+and
+\begin{equation}
+\frac{s_{\rm crit}}{\sigma}=2\cosh u.
+\label{eq:scrit}
+\end{equation}
+Thus $s_{\rm crit}/\sigma\rightarrow\infty$ for a dark secondary and $s_{\rm crit}/\sigma=2$ for equal light. Equation~(\ref{eq:scrit}) is a mathematical property of the equal-width Gaussian mixture, not a Gaia resolution criterion.
+
+Before every synthetic fit, epochs predicted to be multi-peak under the injected model are excluded from the present one-coordinate likelihood. The photocentre and resolution-aware hypotheses are then fit to the identical retained epoch set. The optimizer may use a continuous peak branch internally, but a final resolution-aware solution is accepted for scientific analysis only if all retained epochs are single-peaked. The output records both the flagged fraction and the final validity state.
+
+\subsection{Joint Fit and Model Comparison}
+
+The joint objective combines resolved relative astrometry, both SB2 velocities, and the Gaia-like along-scan observations. All eleven parameters in Equation~(\ref{eq:theta}) are fitted with bounded deterministic least squares. The same synthetic noise realization is used for both hypotheses for a given grid point and random seed.
+
+We summarize model mismatch by
+\begin{equation}
+\dchi=\chi^2_{\rm photo}-\chi^2_{\rm RAA}.
+\label{eq:dchi}
+\end{equation}
+Positive values mean that the resolution-aware model attains a smaller $\chi^2$ on the same injected realization. The models have the same fitted parameter count but are not nested, so throughout this paper $\dchi$ is used descriptively; it is not converted to a Gaussian ``sigma'' significance.
+
+The current Gaia term contains the binary orbital along-scan response only. It does not yet include a complete five-parameter barycentric astrometric solution, spacecraft parallax factors, calibrated window samples, source matching, or Gaia selection effects. These limitations are important when interpreting the synthetic results.
