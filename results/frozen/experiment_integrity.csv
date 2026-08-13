@@ -1,0 +1,3 @@
+experiment,fit_records,sky_positions,all_success,all_scientific_valid,max_multi_peak_flagged,min_gaia_transits,max_gaia_transits
+native_full_sky,23000,46,True,True,0,53,310
+matched_n53,11040,46,True,True,0,53,53
