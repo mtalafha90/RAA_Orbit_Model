@@ -23,12 +23,13 @@ The first prototype contains:
 - a physically constrained Newtonian two-body SB2 forward model;
 - resolved relative astrometry in the tangent plane;
 - physical RV semi-amplitudes derived from component masses;
-- the published piecewise Gaia along-scan response approximation used by Holl et al. (2023), based on Lindegren (2022), including unresolved, marginally resolved, and primary-resolved regimes;
+- Gaia along-scan projection geometry;
+- an explicit two-profile blended-image surrogate for the marginal-resolution response, motivated by the two-profile treatment used in the published Gaia selection-function literature;
 - full 2-D Gaussian likelihood support for resolved astrometry;
 - 1-D Gaussian likelihood support with optional jitter;
-- unit tests for orbital, SB2, scan-projection, photocentre, and resolved-limit identities.
+- unit tests for orbital, SB2, scan-projection, photocentre, and limiting-case identities.
 
-The 90-mas resolution response is a **prototype surrogate**, not a final Gaia image model. Gaia PSF/LSF calibration is time-, colour-, and instrument-state dependent; the final DR4 image-level model must follow the released DR4 data model and calibration products.
+The blended-image response is a **prototype surrogate**, not Gaia's calibrated PSF/LSF. Its width is an explicit model parameter. Gaia PSF/LSF calibration is time-, colour-, and instrument-state dependent (Rowell et al. 2021); the final DR4 image-level model must follow the released DR4 data model and calibration products. We do not invent or hard-code the unpublished calibration function used by Gaia processing.
 
 ## Repository layout
 
@@ -56,7 +57,7 @@ pytest -q
 
 - Leclerc et al. (2023), *A&A* **672**, A82, DOI: 10.1051/0004-6361/202244144 — BINARYS.
 - Halbwachs et al. (2023), *A&A* **674**, A9, arXiv:2206.05726 — Gaia DR3 astrometric binary processing and rejection of partially resolved doubles.
-- Holl et al. (2023), *A&A* **674**, A25, DOI: 10.1051/0004-6361/202245353 — scan-angle-dependent signals and the analytical along-scan bias model.
+- Holl et al. (2023), *A&A* **674**, A25, DOI: 10.1051/0004-6361/202245353 — scan-angle-dependent close-pair biases and an analytical response approximation based on Lindegren (2022).
 - El-Badry et al. (2024), *Open Journal of Astrophysics* **7**, DOI: 10.33232/001c.125461 — Gaia astrometric-orbit selection-function generative model including marginal-resolution effects.
 - Rowell et al. (2021), *A&A* **649**, A11, DOI: 10.1051/0004-6361/202039448 — Gaia EDR3 PSF/LSF modelling and calibration.
 - ESA Gaia DR4 expected-content page — planned `epoch_astrometry`, `epoch_image`, and `rvs_epoch_data_double` products; content is explicitly subject to processing/validation changes.
