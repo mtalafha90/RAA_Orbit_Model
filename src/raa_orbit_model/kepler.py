@@ -1,11 +1,9 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
 import numpy as np
 
 AU_PER_YR_TO_KMS = 4.740470463533349
 TWOPI = 2.0 * np.pi
-
 
 @dataclass(frozen=True)
 class BinaryParams:
@@ -43,7 +41,6 @@ class BinaryParams:
 
     @property
     def a_rel_au(self) -> float:
-        # Kepler's third law in AU, yr, Msun: a^3 = (M1+M2) P^2.
         return ((self.m1_msun + self.m2_msun) * self.period_yr**2) ** (1.0 / 3.0)
 
     @property
@@ -54,6 +51,9 @@ class BinaryParams:
     def a2_au(self) -> float:
         return self.a_rel_au * self.m1_msun / (self.m1_msun + self.m2_msun)
 
+    @property
+    def omega_relative_deg(self) -> float:
+        return (self.omega_deg + 180.0) % 360.0
 
 def solve_kepler(mean_anomaly_rad, eccentricity: float, tol: float = 1e-13, max_iter: int = 100):
     if not (0.0 <= eccentricity < 1.0):
@@ -72,39 +72,40 @@ def solve_kepler(mean_anomaly_rad, eccentricity: float, tol: float = 1e-13, max_
             return E + (M - Mwrapped)
     raise RuntimeError("Kepler solver did not converge")
 
-
 def anomalies(times_yr, p: BinaryParams):
     p.validate()
     t = np.asarray(times_yr, dtype=float)
     M = TWOPI * (t - p.t_peri_yr) / p.period_yr
     E = solve_kepler(M, p.eccentricity)
     e = p.eccentricity
-    nu = 2.0 * np.arctan2(np.sqrt(1 + e) * np.sin(E / 2.0),
-                          np.sqrt(1 - e) * np.cos(E / 2.0))
+    nu = 2.0 * np.arctan2(
+        np.sqrt(1 + e) * np.sin(E / 2.0),
+        np.sqrt(1 - e) * np.cos(E / 2.0),
+    )
     return M, E, nu
 
-
 def relative_position_au(times_yr, p: BinaryParams):
-    """Relative vector r2-r1 in tangent-plane East, North, and LOS coordinates."""
+    """r2-r1 as (East, North, line-of-sight away) in AU.
+
+    omega_deg is the primary RV argument omega1. Relative astrometry uses
+    omega1+180 deg. node_deg is position angle from North through East.
+    """
     _, E, nu = anomalies(times_yr, p)
     r = p.a_rel_au * (1.0 - p.eccentricity * np.cos(E))
-    u = nu + np.deg2rad(p.omega_deg)
+    u = nu + np.deg2rad(p.omega_deg + 180.0)
     inc = np.deg2rad(p.inclination_deg)
     Om = np.deg2rad(p.node_deg)
     cu, su = np.cos(u), np.sin(u)
     cO, sO = np.cos(Om), np.sin(Om)
     ci, si = np.cos(inc), np.sin(inc)
-    east = r * (cO * cu - sO * su * ci)
-    north = r * (sO * cu + cO * su * ci)
+    north = r * (cO * cu - sO * su * ci)
+    east = r * (sO * cu + cO * su * ci)
     los = r * su * si
     return np.column_stack((east, north, los))
 
-
 def relative_astrometry_mas(times_yr, p: BinaryParams):
-    """Return (Delta alpha*, Delta delta) of component 2 relative to 1 in mas."""
-    xy = relative_position_au(times_yr, p)[:, :2]
-    return xy * p.parallax_mas
-
+    """(Delta alpha*, Delta delta) of component 2 relative to 1 in mas."""
+    return relative_position_au(times_yr, p)[:, :2] * p.parallax_mas
 
 def rv_semiamplitudes_kms(p: BinaryParams):
     p.validate()
@@ -112,12 +113,10 @@ def rv_semiamplitudes_kms(p: BinaryParams):
     fac = TWOPI * sini / (p.period_yr * np.sqrt(1.0 - p.eccentricity**2))
     return p.a1_au * fac * AU_PER_YR_TO_KMS, p.a2_au * fac * AU_PER_YR_TO_KMS
 
-
 def radial_velocities_kms(times_yr, p: BinaryParams):
+    """Primary/secondary RVs; positive is receding."""
     _, _, nu = anomalies(times_yr, p)
     K1, K2 = rv_semiamplitudes_kms(p)
-    omega = np.deg2rad(p.omega_deg)
-    f = np.cos(nu + omega) + p.eccentricity * np.cos(omega)
-    v1 = p.gamma_kms + K1 * f
-    v2 = p.gamma_kms - K2 * f
-    return np.column_stack((v1, v2))
+    omega1 = np.deg2rad(p.omega_deg)
+    f = np.cos(nu + omega1) + p.eccentricity * np.cos(omega1)
+    return np.column_stack((p.gamma_kms + K1 * f, p.gamma_kms - K2 * f))
