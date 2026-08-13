@@ -32,9 +32,12 @@ def main():
         help="write the exact resolved Gaia schedule to this CSV for reproducibility",
     )
     parser.add_argument(
-        "--nominal-no-gaps",
+        "--apply-astrometry-gaps",
         action="store_true",
-        help="use the uninterrupted nominal law; default applies the gaiascanlaw astrometric gap mask",
+        help=(
+            "apply gaiascanlaw's published astrometric gap mask; the default is the "
+            "uninterrupted nominal scanning law used for mission simulations"
+        ),
     )
     args = parser.parse_args()
 
@@ -47,7 +50,7 @@ def main():
             args.ra_deg,
             args.dec_deg,
             release=args.release,
-            obstype=None if args.nominal_no_gaps else "astrometry",
+            obstype="astrometry" if args.apply_astrometry_gaps else None,
         )
 
     if args.write_schedule:
@@ -68,7 +71,7 @@ def main():
         node_deg=120.0,
         m1_msun=1.25,
         m2_msun=0.85,
-        parallax_mas=20.0,  # replaced internally for each a/sigma ratio
+        parallax_mas=20.0,
         gamma_kms=7.0,
         beta_g=0.20,
     )
