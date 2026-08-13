@@ -1,0 +1,78 @@
+\section{Synthetic Experiments}
+\label{sect:experiments}
+
+\subsection{Reference Binary and Noise Model}
+
+The reference system is deliberately fixed so the observation model, not the intrinsic binary population, is the controlled variable. The injected values are listed in Table~\ref{tab:setup}. The parallax is rescaled at each experiment point so that the angular relative semi-major axis produces the requested $\asig$. Each realization contains 24 resolved relative-astrometry epochs, 48 SB2 epochs (with both component velocities), and the position-dependent Gaia schedule. The adopted one-sigma noise levels are 0.20 mas per tangent-plane coordinate, 0.10 km s$^{-1}$ per RV measurement, and 0.10 mas per Gaia-like along-scan measurement.
+
+\begin{table}
+\begin{center}
+\caption{Reference Synthetic Configuration}\label{tab:setup}
+\begin{tabular}{lc}
+\hline\noalign{\smallskip}
+Quantity & Value\\
+\hline\noalign{\smallskip}
+$P$ & 2.0 yr\\
+$T_0$ & 0.15 yr\\
+$e$ & 0.25\\
+$i$ & $72^\circ$\\
+$\omega_1$ & $55^\circ$\\
+$\Omega$ & $120^\circ$\\
+$M_1$ & $1.25\,M_\odot$\\
+$M_2$ & $0.85\,M_\odot$\\
+$\gamma$ & 7.0 km s$^{-1}$\\
+Surrogate width $\sigma$ & 50 mas\\
+Resolved astrometry & 24 epochs, 0.20 mas\\
+SB2 spectroscopy & 48 epochs, 0.10 km s$^{-1}$\\
+Gaia-like AL noise & 0.10 mas\\
+External-data baseline & 5.4915748 yr\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{Mission-Grounded Scan Schedules}
+
+Uniform random scan angles were used only during early code validation and are not used for the final bias experiments. The scientific runs use sky-position-dependent nominal Gaia schedules generated through the public \texttt{gaiascanlaw} interface to GOST-derived nominal scanning-law tables. The exact transit times and directional scan angles are archived to CSV and re-used, rather than re-generated, for comparison experiments. This follows the Gaia scanning geometry described by \citet{GaiaMission2016} and the demonstrated importance of scan direction for close-pair systematics \citep{Holl2023}.
+
+These are nominal mission schedules, not the set of observations that would survive acquisition, downlink, calibration, source matching and quality filtering for a particular real source. Scan angles remain directional over $0$--$360^\circ$; they are not folded modulo $180^\circ$.
+
+\subsection{Validation Sequence}
+
+The development and final runs were organized as a sequence of falsifiable checks. First, orbital identities were tested, including Kepler's equation, the mass--RV amplitude relation, barycentric momentum balance, the North-through-East definition of $\Omega$, the $\omega_{\rm rel}=\omega_1+\pi$ conversion, and a finite-difference check of the relative line-of-sight velocity. This convention audit was necessary because internally self-consistent injection/recovery alone can hide a $180^\circ$ periastron or East/North labeling error.
+
+Second, the Gaia surrogate was tested in the unresolved photocentre and bright-component limits. Third, Equation~(\ref{eq:scrit}) was implemented as an explicit validity boundary, so multi-peak profiles cannot be interpreted as a single astrometric coordinate. Finally, all mission-grounded transition experiments were repeated after the orbit-convention correction. Pre-audit numerical transition values are therefore treated as development results and are not used below.
+
+\subsection{Full-Sky Native-Schedule Experiment}
+
+The final native-schedule grid samples J2000 barycentric-mean ecliptic latitudes
+\begin{equation}
+\beta_{\rm ecl}=-90^\circ,-75^\circ,\ldots,+75^\circ,+90^\circ
+\end{equation}
+and longitudes $\lambda_{\rm ecl}=0^\circ,90^\circ,180^\circ,270^\circ$ at each non-polar latitude, with one unique point at each pole. This yields 46 sky positions. Their coordinates are transformed to ICRS before querying the nominal schedule.
+
+The physical grid is
+\begin{equation}
+\betag=0.05,0.15,0.25,0.35,0.45
+\end{equation}
+and
+\begin{equation}
+\asig=0.40,0.50,0.60,0.80,1.00.
+\end{equation}
+Ten independent noise seeds and two fitted measurement hypotheses give
+\begin{equation}
+46\times5\times5\times10\times2=23\,000
+\end{equation}
+fit records. Native nominal transit counts range from 53 to 310.
+
+\subsection{Matched-$N=53$ Control}
+
+The native sky map changes both the number of observations and their angle/time geometry. To separate these effects, the control fixes every position to the smallest native count, $N=53$. For each time-ordered native schedule, the sequence is divided into 53 equal-count strata and the central-ranked transit from each stratum is retained. The rule is deterministic and spans the mission; it is a control device, not a model of Gaia source selection.
+
+For a given injected system and seed, the code first regenerates the full native realization and then subsets the Gaia epochs. Consequently the resolved astrometry, the two RV curves, and the Gaia noise draws at retained epochs are identical to those in the native realization. Only the retained Gaia sampling changes.
+
+The reduced control grid uses $\betag=0.05,0.25,0.45$ and $\asig=0.40,0.50,0.60,1.00$, again with ten seeds and two hypotheses:
+\begin{equation}
+46\times3\times4\times10\times2=11\,040
+\end{equation}
+fit records.
