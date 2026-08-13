@@ -13,6 +13,24 @@ from raa_orbit_model.scanning import (
 )
 
 
+DEFAULT_A_OVER_SIGMA = (0.05, 0.10, 0.20, 0.50, 1.00, 2.00, 4.00)
+DEFAULT_BETA_VALUES = (0.05, 0.20, 0.40)
+
+
+def _positive_values(parser: argparse.ArgumentParser, values, name: str) -> tuple[float, ...]:
+    values = tuple(float(v) for v in values)
+    if not values or any(v <= 0 for v in values):
+        parser.error(f"{name} must contain one or more values > 0")
+    return values
+
+
+def _beta_values(parser: argparse.ArgumentParser, values) -> tuple[float, ...]:
+    values = tuple(float(v) for v in values)
+    if not values or any(v < 0 or v > 0.5 for v in values):
+        parser.error("--beta-values must contain one or more values in [0, 0.5]")
+    return values
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Run the RAA photocentre-vs-resolution experiment on a Gaia scanning-law schedule"
@@ -20,6 +38,25 @@ def main():
     parser.add_argument("--output", default="bias_scan.csv")
     parser.add_argument("--seeds", type=int, default=3, help="number of seeds, starting at zero")
     parser.add_argument("--sigma-response-mas", type=float, default=50.0)
+    parser.add_argument(
+        "--a-over-sigma-values",
+        nargs="+",
+        type=float,
+        default=DEFAULT_A_OVER_SIGMA,
+        metavar="R",
+        help=(
+            "dimensionless angular-separation grid a_rel,ang/sigma. "
+            "Default: 0.05 0.10 0.20 0.50 1 2 4"
+        ),
+    )
+    parser.add_argument(
+        "--beta-values",
+        nargs="+",
+        type=float,
+        default=DEFAULT_BETA_VALUES,
+        metavar="BETA",
+        help="secondary Gaia-band light fractions in [0, 0.5]. Default: 0.05 0.20 0.40",
+    )
     parser.add_argument("--ra-deg", type=float, help="ICRS right ascension; required unless --schedule-file is used")
     parser.add_argument("--dec-deg", type=float, help="ICRS declination; required unless --schedule-file is used")
     parser.add_argument("--release", choices=("dr1", "dr2", "dr3", "dr4", "dr5"), default="dr4")
@@ -41,6 +78,13 @@ def main():
     )
     args = parser.parse_args()
 
+    if args.seeds <= 0:
+        parser.error("--seeds must be > 0")
+    if args.sigma_response_mas <= 0:
+        parser.error("--sigma-response-mas must be > 0")
+    a_over_sigma_values = _positive_values(parser, args.a_over_sigma_values, "--a-over-sigma-values")
+    beta_values = _beta_values(parser, args.beta_values)
+
     if args.schedule_file:
         schedule = schedule_from_csv(args.schedule_file)
     else:
@@ -61,6 +105,9 @@ def main():
         f"RA={schedule.ra_deg:.6f} deg Dec={schedule.dec_deg:.6f} deg; "
         f"release={schedule.release}; source={schedule.source}"
     )
+    print("a/sigma grid:", " ".join(f"{v:g}" for v in a_over_sigma_values))
+    print("beta_G grid:", " ".join(f"{v:g}" for v in beta_values))
+    print(f"seeds: 0..{args.seeds - 1}")
 
     truth = BinaryParams(
         period_yr=2.0,
@@ -78,8 +125,8 @@ def main():
     rows = resolution_bias_scan(
         truth,
         schedule,
-        a_over_sigma_values=(0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 4.0),
-        beta_values=(0.05, 0.20, 0.40),
+        a_over_sigma_values=a_over_sigma_values,
+        beta_values=beta_values,
         seeds=tuple(range(args.seeds)),
         sigma_response_mas=args.sigma_response_mas,
     )

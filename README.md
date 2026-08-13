@@ -30,7 +30,9 @@ The prototype now contains:
 - a direct injection/recovery comparison between photocentre and resolution-aware hypotheses;
 - a sky-position-dependent **GOST-derived Gaia Nominal Scanning Law** adapter through `gaiascanlaw`;
 - portable CSV archiving/reloading of the exact transit times and directional scan angles used in an experiment;
-- regression tests for orbital identities, scan-angle convention, schedule conversion, exact synthetic recovery, and model-misspecification detection.
+- configurable resolution/light-fraction grids for dense transition experiments;
+- paired seed-by-seed model comparison, physical-bias summaries, and PNG/PDF transition plots;
+- regression tests for orbital identities, scan-angle convention, schedule conversion, exact synthetic recovery, model-misspecification detection, and paired-analysis sign conventions.
 
 The blended-image response remains a **prototype surrogate**, not Gaia's calibrated PSF/LSF. Its width is an explicit research parameter. Gaia PSF/LSF calibration is time-, colour-, and instrument-state dependent (Rowell et al. 2021); the final image-level model must follow released Gaia epoch/image calibration products.
 
@@ -53,21 +55,25 @@ src/raa_orbit_model/
   synthetic.py                  Synthetic datasets on explicit Gaia schedules
   fit.py                        Bounded deterministic joint fitting
   experiments.py                Injection/recovery and bias-grid experiments
+  bias_analysis.py              Paired model comparison and transition diagnostics
 scripts/
   run_bias_scan.py              Bias scan on a specified Gaia sky position/schedule
+  analyze_bias_scan.py          Paired summaries and publication-ready transition plots
 ```
 
 ## Install and test
+
+Core tests and the analysis-table tests:
 
 ```bash
 python -m pip install -e ".[test]"
 pytest -q
 ```
 
-To generate GOST-derived schedules locally, install the optional scanning-law dependency:
+For the full mission-grounded workflow including scanning-law generation and plots:
 
 ```bash
-python -m pip install -e ".[scanlaw]"
+python -m pip install -e ".[test,scanlaw,analysis]"
 ```
 
 ## Run a mission-grounded bias experiment
@@ -90,6 +96,57 @@ python scripts/run_bias_scan.py \
 ```
 
 The default is the uninterrupted **nominal** scanning law. `--apply-astrometry-gaps` optionally applies the gap information exposed by `gaiascanlaw`; it must not be interpreted as a complete source-level detection model for later releases.
+
+## Dense transition scan
+
+The resolution and light-fraction grids are configurable from the command line. For the currently interesting transition regime:
+
+```bash
+python scripts/run_bias_scan.py \
+  --schedule-file schedules/ra120_dec30_dr4.csv \
+  --a-over-sigma-values \
+    0.20 0.25 0.30 0.35 0.40 0.45 0.50 \
+    0.55 0.60 0.70 0.80 0.90 1.00 1.20 \
+  --beta-values 0.05 0.20 0.40 \
+  --seeds 20 \
+  --sigma-response-mas 50 \
+  --output results/bias_transition_ra120_dec30_dr4_seed20.csv
+```
+
+Each model is fit to the same synthetic realization for a given `(beta_G, a/sigma, seed)`. This permits a genuinely paired comparison rather than comparing independent noise realizations.
+
+## Paired analysis and plots
+
+Install the analysis extra if needed:
+
+```bash
+python -m pip install -e ".[analysis]"
+```
+
+Then analyze a completed scan:
+
+```bash
+python scripts/analyze_bias_scan.py \
+  results/bias_transition_ra120_dec30_dr4_seed20.csv \
+  --output-dir results/transition_ra120_dec30_dr4_seed20 \
+  --prefix ra120_dec30_dr4
+```
+
+The script writes:
+
+- `<prefix>_paired.csv` — one row per matched `(beta_G, a/sigma, seed)` realization;
+- `<prefix>_summary.csv` — median, mean, 16th/84th percentiles, extrema, and pair counts;
+- `<prefix>_delta_chi2.{png,pdf}` — paired `chi2_photocentre - chi2_RAA` transition;
+- fractional-bias plots for `beta_G`, parallax, `M1`, and `M2`;
+- inclination-bias plots in degrees.
+
+The paired analysis uses
+
+```text
+Delta chi2 = chi2_photocentre - chi2_resolution_aware
+```
+
+so positive values favour the resolution-aware measurement model for that injected realization. The plotting code reports seed distributions; it does not convert `Delta chi2` into a Gaussian-significance claim.
 
 ## Core references
 
