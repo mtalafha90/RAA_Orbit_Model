@@ -1,0 +1,12 @@
+experiment,criterion,first_crossing_a_over_sigma,n_sky_positions
+native,q16_positive,0.4,41
+native,q16_positive,0.5,5
+native,all_seeds_positive,0.4,18
+native,all_seeds_positive,0.5,23
+native,all_seeds_positive,0.6,5
+matched_n53,q16_positive,0.4,31
+matched_n53,q16_positive,0.5,15
+matched_n53,all_seeds_positive,0.4,8
+matched_n53,all_seeds_positive,0.5,24
+matched_n53,all_seeds_positive,0.6,13
+matched_n53,all_seeds_positive,1.0,1

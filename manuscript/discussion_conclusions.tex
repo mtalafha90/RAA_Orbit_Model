@@ -1,0 +1,55 @@
+\section{Discussion}
+\label{sect:discussion}
+
+\subsection{What the Synthetic Experiment Establishes}
+
+The central result is not merely that a two-Gaussian profile differs from its flux-weighted centroid. Rather, the joint inference shows a broad regime in which the profile is still single-peaked, yet the peak coordinate is sufficiently non-photocentric that a full eleven-parameter orbit fit cannot remove the discrepancy without degrading the joint likelihood.
+
+The light-fraction dependence is physically interpretable within the surrogate. The effect vanishes toward a dark secondary because the second light profile disappears, and it vanishes toward exact equal-light symmetry in the single-peak limit because the central maximum and photocentre coincide. Intermediate light fractions maximize the displacement of the peak from the flux-weighted position. The fact that $\betag=0.25$ is the maximum at all 230 native sampled sky/separation combinations makes this behavior robust within the tested orbit and grid rather than a feature of one scan geometry.
+
+The full-sky experiment also demonstrates why a single representative sky position is insufficient. The same binary parameters can produce order-of-magnitude changes in native $\dchi$ because Gaia's nominal cadence and directional sampling vary over the sky. The matched-$N$ experiment then shows that most of this large-scale variation is attributable to observation count: after all positions are reduced to 53 measurements, the correlation with native $N$ vanishes and the matched/native discrepancy ratio closely tracks the retained fraction. Residual correlations with scan-angle entropy and maximum gap show that geometry remains a secondary contributor.
+
+\subsection{What the Experiment Does Not Establish}
+
+Several limitations are deliberately retained.
+
+First, the Gaussian width is a dimensionless research scale for the experiment. Neither $\sigma=50$ mas nor any sampled $\asig$ value is a calibrated Gaia resolution scale. The quantitative transition locations cannot be translated directly into angular separation criteria for real Gaia data.
+
+Second, the model uses the global maximum of a two-equal-width-Gaussian one-dimensional profile. Gaia image parameter determination uses a calibrated, time- and colour-dependent LSF/PSF \citep{Rowell2021}, and real marginally resolved sources involve window assignment, gating, background, source matching, detection and calibration effects that are absent here.
+
+Third, the schedules are nominal GOST-derived mission trajectories. They encode sky-position-dependent times and scan directions but not the exact source-level set of successful observations. The native full-sky study should therefore be interpreted as a controlled mission-geometry experiment, not a prediction of the number of usable epochs for a specific star.
+
+Fourth, the synthetic study holds one physical orbit, noise prescription and external-data design fixed. Equation~(\ref{eq:scaling}) should not be generalized into a universal Gaia law $\dchi\propto N$ without tests over period, eccentricity, inclination, mass ratio, magnitude/noise, external astrometric precision, and orbit/scan phase relationships.
+
+Finally, the current deterministic least-squares solution is a validation backend, not the final uncertainty engine. Real target analyses will require a posterior sampler and explicit nuisance terms, and the complete absolute astrometric motion and parallax factors must be included.
+
+\subsection{Relation to Existing Work and Next Step}
+
+The study complements rather than replaces established combined-orbit tools such as BINARYS \citep{Leclerc2023}. It also addresses a different level of the problem from the DR3 catalogue selection-function modelling of \citet{ElBadry2024}. Our focus is the target-level measurement response in a luminous binary for which resolved astrometry and both SB2 curves are simultaneously available.
+
+The next physical step is therefore not to refine the surrogate transition threshold. It is to replace Equation~(\ref{eq:gaussian}) with the calibrated measurement model appropriate to released Gaia epoch astrometry or image samples, and then repeat the same validation hierarchy: unresolved limit, multi-component validity, injection/recovery, sky-position dependence, and target-level joint posterior inference. Until such calibration is implemented, the present work should be read as a controlled demonstration of why the observation model can matter and how its impact should be quantified.
+
+\section{Conclusions}
+\label{sect:conclusion}
+
+We developed a physically constrained joint orbit prototype for resolved relative astrometry, SB2 radial velocities, and Gaia-like along-scan measurements with a resolution-aware single-peak response. The main conclusions are:
+
+\begin{enumerate}
+\item A two-profile resolution-aware response recovers the ordinary photocentre in the unresolved limit but admits a distinct single-peak, non-photocentric regime before profile mode splitting.
+\item Explicit orbit conventions and multi-peak validity checks are essential; internally consistent synthetic recovery alone is insufficient to detect orientation-convention errors.
+\item Across 23\,000 native full-sky fits, $\betag=0.25$ gives the largest median photocentre--RAA discrepancy at all 230 tested sky/separation combinations.
+\item At $\betag=0.25$ and $\asig=1$, the native sky-median $\dchi$ is 2195.39, with substantial sky variation driven by the nominal scanning law.
+\item Matching every sky position to 53 observations reduces the sky-median $\dchi$ to 1180.94 and removes the native correlation with transit count.
+\item The matched/native discrepancy ratio tracks the retained-transit fraction with $\rho_{\rm S}=0.923$, while residual scan-angle dependence remains.
+\item These numerical values characterize the present surrogate and controlled synthetic design; they are not physical Gaia resolution thresholds or empirical Gaia calibration results.
+\end{enumerate}
+
+The framework is therefore ready for the next methodological stage: calibrated Gaia epoch/image measurement physics and posterior-level target inference.
+
+\section*{Data and Code Availability}
+
+The implementation, validation tests, analysis scripts, compact frozen result tables, and manuscript figures are versioned in the accompanying \texttt{RAA\_Orbit\_Model} repository. The large raw synthetic CSV files are generated by the documented scripts; the committed frozen tables contain the numerical summaries used in this manuscript. Exact nominal scan schedules are archived by the experiment runner so that the same directional sampling can be re-used without re-querying the scanning-law provider.
+
+\begin{acknowledgements}
+The author acknowledges the open Gaia mission documentation and the public software and literature resources used to construct the controlled scanning-law experiments.
+\end{acknowledgements}
