@@ -18,32 +18,44 @@ The broad combination “Gaia + RV + relative astrometry” is **not novel**. BI
 
 ## Current implementation status
 
-The first prototype contains:
+The prototype now contains:
 
 - a physically constrained Newtonian two-body SB2 forward model;
 - resolved relative astrometry in the tangent plane;
 - physical RV semi-amplitudes derived from component masses;
 - Gaia along-scan projection geometry;
-- an explicit two-profile blended-image surrogate for the marginal-resolution response, motivated by the two-profile treatment used in the published Gaia selection-function literature;
-- full 2-D Gaussian likelihood support for resolved astrometry;
-- 1-D Gaussian likelihood support with optional jitter;
-- unit tests for orbital, SB2, scan-projection, photocentre, and limiting-case identities.
+- an explicit two-profile blended-image surrogate for the marginal-resolution response;
+- full 2-D covariance whitening for resolved astrometry;
+- a reproducible joint synthetic-data generator;
+- a bounded deterministic joint fitter for all 11 baseline physical parameters;
+- a direct injection/recovery comparison between the ordinary photocentre and resolution-aware hypotheses;
+- a dimensionless bias scan in `a_rel(angular)/sigma` and Gaia-band light fraction;
+- regression tests for orbital identities, photocentre/resolved limits, exact synthetic recovery, and model-misspecification detection.
 
-The blended-image response is a **prototype surrogate**, not Gaia's calibrated PSF/LSF. Its width is an explicit model parameter. Gaia PSF/LSF calibration is time-, colour-, and instrument-state dependent (Rowell et al. 2021); the final DR4 image-level model must follow the released DR4 data model and calibration products. We do not invent or hard-code the unpublished calibration function used by Gaia processing.
+The blended-image response is a **prototype surrogate**, not Gaia's calibrated PSF/LSF. Its width is an explicit research parameter. Gaia PSF/LSF calibration is time-, colour-, and instrument-state dependent (Rowell et al. 2021); the final DR4 image-level model must follow the released DR4 data model and calibration products. We do not invent or hard-code an unavailable Gaia calibration function.
+
+The first three-seed injection experiment is recorded in `docs/first_injection_experiment.md`. Its transition scale is dimensionless and belongs only to the Gaussian surrogate experiment; it is **not** a claimed Gaia angular-resolution threshold.
 
 ## Repository layout
 
 ```text
 docs/
-  literature_gap.md      Evidence for and limits of the candidate research gap
-  methodology.md         Mathematical and validation methodology
+  literature_gap.md             Evidence for and limits of the candidate research gap
+  methodology.md                Mathematical and validation methodology
+  first_injection_experiment.md First controlled photocentre-vs-resolution comparison
 src/raa_orbit_model/
-  kepler.py              Newtonian binary dynamics, relative astrometry, SB2 RVs
-  gaia.py                Along-scan projection and resolution-aware response
-  likelihoods.py         Likelihood building blocks
-  model.py               Joint forward model
+  kepler.py                     Newtonian binary dynamics, relative astrometry, SB2 RVs
+  gaia.py                       Along-scan projection and resolution-aware surrogate
+  likelihoods.py                Likelihood building blocks
+  model.py                      Joint forward model
+  synthetic.py                  Reproducible synthetic joint datasets
+  fit.py                        Bounded deterministic joint fitting
+  experiments.py                Injection/recovery and bias-grid experiments
+scripts/
+  run_bias_scan.py              Reproduce the first dimensionless bias scan
 tests/
-  test_core.py           Physics and limiting-case regression tests
+  test_core.py                  Physics and limiting-case regression tests
+  test_injection.py             Joint recovery and model-comparison tests
 ```
 
 ## Run tests
@@ -52,6 +64,14 @@ tests/
 python -m pip install -e ".[test]"
 pytest -q
 ```
+
+## Run the first bias experiment
+
+```bash
+python scripts/run_bias_scan.py --seeds 3 --output bias_scan.csv
+```
+
+The current synthetic scan angles are uniform on `[0, 180)` by design. They are not yet generated from the Gaia scanning law.
 
 ## Core references
 
