@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import pytest
 
@@ -6,8 +7,14 @@ from raa_orbit_model.kepler import (
     radial_velocities_kms, rv_semiamplitudes_kms,
 )
 from raa_orbit_model.gaia import (
-    project_along_scan, photocentre_along_scan, component_al_positions,
+    MultiPeakProfileError,
     blended_gaussian_peak,
+    blended_gaussian_peak_count,
+    blended_gaussian_response,
+    component_al_positions,
+    critical_blended_separation_sigma,
+    photocentre_along_scan,
+    project_along_scan,
 )
 
 
@@ -89,9 +96,33 @@ def test_blended_peak_tends_to_photocentre_when_unresolved():
         assert peak == pytest.approx(ph, abs=2e-5)
 
 
-def test_blended_peak_tends_to_primary_when_well_separated():
-    B, beta, sigma = 0.4, 0.2, 10.0
-    d = 200.0
+def test_exact_mode_split_limits():
+    assert math.isinf(critical_blended_separation_sigma(0.0))
+    assert critical_blended_separation_sigma(0.5) == pytest.approx(2.0)
+    assert critical_blended_separation_sigma(0.2) == pytest.approx(2.9806753407, rel=1e-10)
+
+
+def test_faint_secondary_remains_single_peak_at_arbitrary_separation():
+    B, sigma, d = 0.4, 5.0, 500.0
+    response = blended_gaussian_response(d, B, 0.0, sigma)
     x1, _ = component_al_positions(d, B)
-    peak = blended_gaussian_peak(d, B, beta, sigma)
-    assert peak == pytest.approx(x1, abs=1e-3)
+    assert response.n_peaks == 1
+    assert response.al_mas == pytest.approx(x1)
+
+
+def test_equal_light_profile_is_single_peak_below_two_sigma():
+    B, beta, sigma, d = 0.4, 0.5, 10.0, 19.0
+    response = blended_gaussian_response(d, B, beta, sigma)
+    assert response.n_peaks == 1
+    assert blended_gaussian_peak_count(d, beta, sigma) == 1
+    assert response.al_mas == pytest.approx(photocentre_along_scan(d, B, beta))
+
+
+def test_equal_light_profile_is_flagged_above_two_sigma():
+    B, beta, sigma, d = 0.4, 0.5, 10.0, 21.0
+    response = blended_gaussian_response(d, B, beta, sigma)
+    assert response.n_peaks == 2
+    assert blended_gaussian_peak_count(d, beta, sigma) == 2
+    assert np.isnan(response.al_mas)
+    with pytest.raises(MultiPeakProfileError):
+        blended_gaussian_peak(d, B, beta, sigma)
