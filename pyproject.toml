@@ -10,8 +10,9 @@ requires-python = ">=3.10"
 dependencies = ["numpy>=1.24", "scipy>=1.10"]
 
 [project.optional-dependencies]
-test = ["pytest>=7"]
+test = ["pytest>=7", "pandas>=2.0"]
 scanlaw = ["gaiascanlaw==0.2.0"]
+analysis = ["pandas>=2.0", "matplotlib>=3.7"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
