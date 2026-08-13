@@ -15,7 +15,7 @@ class GaiaScanSchedule:
 
     ``times_yr`` are years from the scanning-law mission start used by the
     provider. ``scan_angle_deg`` is the *directional* Gaia along-scan position
-    angle: 0 deg points North and 90 deg points East.  Angles are deliberately
+    angle: 0 deg points North and 90 deg points East. Angles are deliberately
     not reduced modulo 180 deg because reversing the AL direction reverses the
     sign of a one-dimensional AL coordinate.
     """
@@ -92,28 +92,21 @@ def schedule_from_gaiascanlaw(
     dec_deg: float,
     *,
     release: str = "dr4",
-    obstype: str | None = "astrometry",
+    obstype: str | None = None,
     _module=None,
 ) -> GaiaScanSchedule:
     """Return a GOST-derived nominal Gaia schedule using ``gaiascanlaw``.
 
     The external ``gaiascanlaw`` package is an optional research dependency.
     It returns decimal-year transit times and scan angles in radians from a
-    GOST-derived level-6 HEALPix schedule.  We convert times to years from the
-    provider's mission start and angles to degrees, preserving the scan
-    direction.
+    GOST-derived level-6 HEALPix schedule. We convert times to years from the
+    provider's mission start and angles to degrees, preserving scan direction.
 
-    Parameters
-    ----------
-    ra_deg, dec_deg
-        ICRS sky position in degrees.
-    release
-        One of dr1, dr2, dr3, dr4, dr5.  In this project dr4 means the
-        nominal 66-month DR4 baseline and dr5 the full science-operation
-        nominal schedule ending in January 2025, as encoded by gaiascanlaw.
-    obstype
-        Passed to gaiascanlaw. ``'astrometry'`` applies its published Gaia
-        astrometric gap mask; use ``None`` for the uninterrupted nominal law.
+    ``obstype=None`` is the default because it reproduces the uninterrupted
+    nominal-scanning-law use case adopted in recent mission simulations.
+    ``obstype='astrometry'`` optionally applies the package's published DR3
+    astrometric gap information; that mask must not be interpreted as a
+    complete loss model for later releases.
     """
     release = str(release).lower()
     if release not in _RELEASES:
@@ -140,20 +133,14 @@ def schedule_from_gaiascanlaw(
     t_start = float(gsl.tstart)
     t_end = float(getattr(gsl, end_name))
     times_decimalyear, angles_rad = gsl.scanlaw(
-        float(ra_deg),
-        float(dec_deg),
-        tstart=t_start,
-        tend=t_end,
-        obstype=obstype,
+        float(ra_deg), float(dec_deg), tstart=t_start, tend=t_end, obstype=obstype
     )
-    times_decimalyear = np.asarray(times_decimalyear, dtype=float)
-    angles_rad = np.asarray(angles_rad, dtype=float)
     source = "gaiascanlaw/GOST nominal scanning law"
     if obstype is not None:
-        source += f"; {obstype} gaps applied"
+        source += f"; {obstype} gap mask applied"
     return schedule_from_arrays(
-        times_decimalyear - t_start,
-        np.rad2deg(angles_rad),
+        np.asarray(times_decimalyear, dtype=float) - t_start,
+        np.rad2deg(np.asarray(angles_rad, dtype=float)),
         ra_deg=ra_deg,
         dec_deg=dec_deg,
         release=release,
@@ -177,20 +164,18 @@ def write_schedule_csv(schedule: GaiaScanSchedule, path: str | Path) -> None:
         )
         writer.writeheader()
         for t, psi in zip(schedule.times_yr, schedule.scan_angle_deg):
-            writer.writerow(
-                {
-                    "mission_time_yr": f"{float(t):.12g}",
-                    "scan_angle_deg": f"{float(psi):.12g}",
-                    "ra_deg": f"{schedule.ra_deg:.12g}",
-                    "dec_deg": f"{schedule.dec_deg:.12g}",
-                    "release": schedule.release,
-                    "source": schedule.source,
-                    "mission_start_decimalyear": (
-                        "" if schedule.mission_start_decimalyear is None
-                        else f"{schedule.mission_start_decimalyear:.12g}"
-                    ),
-                }
-            )
+            writer.writerow({
+                "mission_time_yr": f"{float(t):.12g}",
+                "scan_angle_deg": f"{float(psi):.12g}",
+                "ra_deg": f"{schedule.ra_deg:.12g}",
+                "dec_deg": f"{schedule.dec_deg:.12g}",
+                "release": schedule.release,
+                "source": schedule.source,
+                "mission_start_decimalyear": (
+                    "" if schedule.mission_start_decimalyear is None
+                    else f"{schedule.mission_start_decimalyear:.12g}"
+                ),
+            })
 
 
 def schedule_from_csv(path: str | Path) -> GaiaScanSchedule:
@@ -200,7 +185,6 @@ def schedule_from_csv(path: str | Path) -> GaiaScanSchedule:
         rows = list(csv.DictReader(f))
     if not rows:
         raise ValueError(f"schedule CSV is empty: {path}")
-
     first = rows[0]
     required = {"mission_time_yr", "scan_angle_deg", "ra_deg", "dec_deg", "release", "source"}
     missing = required - set(first)
