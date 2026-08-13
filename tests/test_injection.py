@@ -1,9 +1,11 @@
+import numpy as np
 import pytest
 
 from raa_orbit_model.experiments import compare_models_once
 from raa_orbit_model.fit import fit_joint
 from raa_orbit_model.kepler import BinaryParams
 from raa_orbit_model.model import GaiaResponseConfig
+from raa_orbit_model.scanning import schedule_from_arrays
 from raa_orbit_model.synthetic import simulate_joint_data
 
 
@@ -25,15 +27,32 @@ def truth(**kw):
     return BinaryParams(**base)
 
 
+def test_schedule(n=80, span_yr=5.0):
+    # Deterministic nonuniform fixture for unit tests only; scientific runs use
+    # a GOST/gaiascanlaw schedule or an archived schedule CSV.
+    u = (np.arange(n, dtype=float) + 0.5) / n
+    times = span_yr * u**1.35
+    angles = np.mod(31.0 + 211.0 * u + 53.0 * np.sin(9.0 * u), 360.0)
+    return schedule_from_arrays(
+        times,
+        angles,
+        ra_deg=20.0,
+        dec_deg=45.0,
+        release="custom",
+        source="deterministic-test-fixture",
+    )
+
+
 def test_noise_free_joint_recovery_of_key_physical_parameters():
     p = truth()
+    schedule = test_schedule(80)
     data = simulate_joint_data(
         p,
         GaiaResponseConfig("photocentre"),
+        schedule,
         seed=4,
         n_ast=30,
         n_rv=60,
-        n_gaia=80,
         ast_sigma_mas=1e-5,
         rv_sigma_kms=1e-5,
         gaia_sigma_mas=1e-5,
@@ -56,6 +75,10 @@ def test_noise_free_joint_recovery_of_key_physical_parameters():
                 GaiaResponseConfig("photocentre"),
             ),
             gaia.sigma_mas,
+            schedule_source=gaia.schedule_source,
+            ra_deg=gaia.ra_deg,
+            dec_deg=gaia.dec_deg,
+            release=gaia.release,
         ),
     )
     initial = BinaryParams(
@@ -85,11 +108,11 @@ def test_resolution_aware_fit_beats_misspecified_photocentre_in_resolved_regime(
     p = truth(parallax_mas=80.0, beta_g=0.20)
     _, photo, raa = compare_models_once(
         p,
+        test_schedule(60),
         sigma_response_mas=25.0,
         seed=2,
         n_ast=20,
         n_rv=40,
-        n_gaia=60,
         ast_sigma_mas=0.15,
         rv_sigma_kms=0.08,
         gaia_sigma_mas=0.05,
