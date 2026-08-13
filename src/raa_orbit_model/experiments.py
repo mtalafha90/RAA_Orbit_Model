@@ -6,6 +6,7 @@ import csv
 from .fit import ALL_PARAMETER_NAMES, fit_joint
 from .kepler import BinaryParams
 from .model import GaiaResponseConfig
+from .scanning import GaiaScanSchedule
 from .synthetic import simulate_joint_data
 
 
@@ -29,13 +30,13 @@ def perturbed_start(truth: BinaryParams) -> BinaryParams:
 
 def compare_models_once(
     truth: BinaryParams,
+    gaia_schedule: GaiaScanSchedule,
     *,
     sigma_response_mas: float,
     seed: int = 0,
     free_names=ALL_PARAMETER_NAMES,
     n_ast: int = 24,
     n_rv: int = 48,
-    n_gaia: int = 72,
     ast_sigma_mas: float = 0.20,
     rv_sigma_kms: float = 0.10,
     gaia_sigma_mas: float = 0.10,
@@ -45,10 +46,10 @@ def compare_models_once(
     data = simulate_joint_data(
         truth,
         injected_response,
+        gaia_schedule,
         seed=seed,
         n_ast=n_ast,
         n_rv=n_rv,
-        n_gaia=n_gaia,
         ast_sigma_mas=ast_sigma_mas,
         rv_sigma_kms=rv_sigma_kms,
         gaia_sigma_mas=gaia_sigma_mas,
@@ -59,7 +60,14 @@ def compare_models_once(
     return data, photo, raa
 
 
-def _record(model_name: str, truth: BinaryParams, result, sigma_response_mas: float, seed: int) -> dict:
+def _record(
+    model_name: str,
+    truth: BinaryParams,
+    result,
+    sigma_response_mas: float,
+    seed: int,
+    schedule: GaiaScanSchedule,
+) -> dict:
     row = {
         "model": model_name,
         "seed": int(seed),
@@ -70,6 +78,12 @@ def _record(model_name: str, truth: BinaryParams, result, sigma_response_mas: fl
         "reduced_chi2": result.reduced_chi2,
         "success": result.success,
         "nfev": result.nfev,
+        "gaia_ra_deg": schedule.ra_deg,
+        "gaia_dec_deg": schedule.dec_deg,
+        "gaia_release": schedule.release,
+        "gaia_schedule_source": schedule.source,
+        "gaia_n_transits": schedule.n_transits,
+        "gaia_schedule_duration_yr": schedule.duration_yr,
     }
     for name, true_value in asdict(truth).items():
         fit_value = getattr(result.params, name)
@@ -83,6 +97,7 @@ def _record(model_name: str, truth: BinaryParams, result, sigma_response_mas: fl
 
 def resolution_bias_scan(
     base_truth: BinaryParams,
+    gaia_schedule: GaiaScanSchedule,
     *,
     a_over_sigma_values=(0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 4.0),
     beta_values=None,
@@ -91,17 +106,12 @@ def resolution_bias_scan(
     free_names=ALL_PARAMETER_NAMES,
     n_ast: int = 24,
     n_rv: int = 48,
-    n_gaia: int = 72,
     ast_sigma_mas: float = 0.20,
     rv_sigma_kms: float = 0.10,
     gaia_sigma_mas: float = 0.10,
 ) -> list[dict]:
-    """Map bias versus dimensionless angular resolution and light fraction.
-
-    The requested a_rel(mas)/sigma ratio is set by changing the injected
-    parallax while leaving the physical binary fixed. This is a controlled
-    dimensionless surrogate experiment, not a Gaia scanning-law forecast.
-    """
+    """Map bias versus angular resolution using one explicit Gaia schedule."""
+    gaia_schedule.validate()
     if sigma_response_mas <= 0:
         raise ValueError("sigma_response_mas must be > 0")
     beta_values = (base_truth.beta_g,) if beta_values is None else tuple(beta_values)
@@ -119,18 +129,18 @@ def resolution_bias_scan(
             for seed in seeds:
                 _, photo, raa = compare_models_once(
                     truth,
+                    gaia_schedule,
                     sigma_response_mas=sigma_response_mas,
                     seed=int(seed),
                     free_names=free_names,
                     n_ast=n_ast,
                     n_rv=n_rv,
-                    n_gaia=n_gaia,
                     ast_sigma_mas=ast_sigma_mas,
                     rv_sigma_kms=rv_sigma_kms,
                     gaia_sigma_mas=gaia_sigma_mas,
                 )
-                rows.append(_record("photocentre", truth, photo, sigma_response_mas, int(seed)))
-                rows.append(_record("resolution_aware", truth, raa, sigma_response_mas, int(seed)))
+                rows.append(_record("photocentre", truth, photo, sigma_response_mas, int(seed), gaia_schedule))
+                rows.append(_record("resolution_aware", truth, raa, sigma_response_mas, int(seed), gaia_schedule))
     return rows
 
 
