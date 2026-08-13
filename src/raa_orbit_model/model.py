@@ -7,6 +7,7 @@ import numpy as np
 
 from .kepler import BinaryParams, relative_astrometry_mas, radial_velocities_kms
 from .gaia import (
+    _global_peak_coordinate,
     blended_gaussian_peak,
     blended_gaussian_response,
     photocentre_along_scan,
@@ -18,6 +19,7 @@ from .gaia import (
 class GaiaResponseConfig:
     mode: str = "photocentre"  # "photocentre" or "blended_gaussian_peak"
     sigma_mas: float | None = None
+    allow_multi_peak_continuation: bool = False
 
 
 @dataclass(frozen=True)
@@ -61,9 +63,9 @@ def predict_gaia_orbital_response(
     """Predict Gaia-like AL response while preserving single/multi-peak validity.
 
     For the photocentre model every epoch belongs to the single-coordinate
-    channel by construction.  For the blended-Gaussian research surrogate,
-    multi-peak epochs are returned with ``NaN`` values and a false validity
-    mask; callers must not reinterpret those epochs as unique centroids.
+    channel by construction. For the blended-Gaussian research surrogate,
+    multi-peak epochs are returned with NaN values and a false validity mask;
+    callers must not reinterpret those epochs as unique centroids.
     """
     d_al = np.asarray(_relative_al(times_yr, scan_angle_deg, params), dtype=float)
     B = params.mass_fraction_secondary
@@ -98,7 +100,14 @@ def predict_gaia_orbital_al(
     params: BinaryParams,
     response: GaiaResponseConfig = GaiaResponseConfig(),
 ):
-    """Predict a unique AL coordinate and reject multi-peak surrogate epochs."""
+    """Predict a unique AL coordinate in the surrogate single-peak domain.
+
+    ``allow_multi_peak_continuation`` exists only so the deterministic
+    least-squares prototype can traverse parameter space continuously. Such an
+    intermediate coordinate is not a scientific prediction: final solutions
+    must be checked with :func:`predict_gaia_orbital_response` and accepted only
+    when every retained epoch is single-peaked.
+    """
     d_al = _relative_al(times_yr, scan_angle_deg, params)
     B = params.mass_fraction_secondary
     if response.mode == "photocentre":
@@ -106,5 +115,9 @@ def predict_gaia_orbital_al(
     if response.mode == "blended_gaussian_peak":
         if response.sigma_mas is None:
             raise ValueError("sigma_mas is required for blended_gaussian_peak mode")
+        if response.allow_multi_peak_continuation:
+            scalar = np.ndim(d_al) == 0
+            peak = _global_peak_coordinate(d_al, B, params.beta_g, response.sigma_mas)
+            return float(peak[0]) if scalar else peak
         return blended_gaussian_peak(d_al, B, params.beta_g, response.sigma_mas)
     raise ValueError(f"unknown Gaia response mode: {response.mode}")
