@@ -1,17 +1,35 @@
 from __future__ import annotations
 
-from dataclasses import asdict, replace
+from dataclasses import asdict, dataclass, replace
 import csv
+import numpy as np
 
 from .fit import ALL_PARAMETER_NAMES, fit_joint
 from .kepler import BinaryParams
-from .model import GaiaResponseConfig
-from .scanning import GaiaScanSchedule
+from .model import GaiaResponseConfig, predict_gaia_orbital_response
+from .scanning import GaiaScanSchedule, schedule_from_arrays
 from .synthetic import simulate_joint_data
 
 
+@dataclass(frozen=True)
+class GaiaSinglePeakSelection:
+    schedule: GaiaScanSchedule
+    n_total: int
+    n_single_peak: int
+    n_multi_peak: int
+    multi_peak_fraction: float
+    critical_separation_sigma: float
+    max_projected_separation_sigma: float
+
+
+@dataclass(frozen=True)
+class ComparisonDiagnostics:
+    selection: GaiaSinglePeakSelection
+    raa_scientific_valid: bool
+    raa_final_multi_peak_predicted: int
+
+
 def perturbed_start(truth: BinaryParams) -> BinaryParams:
-    """Deterministic near-truth start for measurement-model bias experiments."""
     return replace(
         truth,
         period_yr=truth.period_yr * 1.015,
@@ -28,6 +46,55 @@ def perturbed_start(truth: BinaryParams) -> BinaryParams:
     )
 
 
+def single_peak_schedule_for_response(
+    truth: BinaryParams,
+    gaia_schedule: GaiaScanSchedule,
+    response: GaiaResponseConfig,
+) -> GaiaSinglePeakSelection:
+    """Keep only epochs where the surrogate has one unique AL mode."""
+    gaia_schedule.validate()
+    prediction = predict_gaia_orbital_response(
+        gaia_schedule.times_yr,
+        gaia_schedule.scan_angle_deg,
+        truth,
+        response,
+    )
+    valid = np.asarray(prediction.single_peak_mask, dtype=bool)
+    n_total = gaia_schedule.n_transits
+    n_single = int(np.count_nonzero(valid))
+    n_multi = int(n_total - n_single)
+    if n_single == 0:
+        raise ValueError("all Gaia epochs are multi-peak in the current surrogate")
+
+    source = gaia_schedule.source
+    if n_multi:
+        source += f"; {n_multi} multi-peak surrogate epoch(s) excluded"
+    selected = schedule_from_arrays(
+        np.asarray(gaia_schedule.times_yr)[valid],
+        np.asarray(gaia_schedule.scan_angle_deg)[valid],
+        ra_deg=gaia_schedule.ra_deg,
+        dec_deg=gaia_schedule.dec_deg,
+        release=gaia_schedule.release,
+        source=source,
+        mission_start_decimalyear=gaia_schedule.mission_start_decimalyear,
+    )
+
+    sigma = response.sigma_mas
+    max_sep_sigma = (
+        np.nan if sigma is None
+        else float(np.max(prediction.projected_separation_mas) / sigma)
+    )
+    return GaiaSinglePeakSelection(
+        schedule=selected,
+        n_total=n_total,
+        n_single_peak=n_single,
+        n_multi_peak=n_multi,
+        multi_peak_fraction=(n_multi / n_total if n_total else 0.0),
+        critical_separation_sigma=float(prediction.critical_separation_sigma),
+        max_projected_separation_sigma=max_sep_sigma,
+    )
+
+
 def compare_models_once(
     truth: BinaryParams,
     gaia_schedule: GaiaScanSchedule,
@@ -40,23 +107,46 @@ def compare_models_once(
     ast_sigma_mas: float = 0.20,
     rv_sigma_kms: float = 0.10,
     gaia_sigma_mas: float = 0.10,
+    return_diagnostics: bool = False,
 ):
-    """Inject with the resolution-aware surrogate and fit both hypotheses."""
+    """Inject on single-peak epochs and fit both measurement hypotheses."""
     injected_response = GaiaResponseConfig("blended_gaussian_peak", sigma_response_mas)
+    selection = single_peak_schedule_for_response(truth, gaia_schedule, injected_response)
     data = simulate_joint_data(
         truth,
         injected_response,
-        gaia_schedule,
+        selection.schedule,
         seed=seed,
         n_ast=n_ast,
         n_rv=n_rv,
+        baseline_yr=gaia_schedule.mission_span_yr,
         ast_sigma_mas=ast_sigma_mas,
         rv_sigma_kms=rv_sigma_kms,
         gaia_sigma_mas=gaia_sigma_mas,
     )
     initial = perturbed_start(truth)
     photo = fit_joint(data, initial, GaiaResponseConfig("photocentre"), free_names=free_names)
-    raa = fit_joint(data, initial, injected_response, free_names=free_names)
+
+    fit_response = GaiaResponseConfig(
+        "blended_gaussian_peak",
+        sigma_response_mas,
+        allow_multi_peak_continuation=True,
+    )
+    raa = fit_joint(data, initial, fit_response, free_names=free_names)
+    final_prediction = predict_gaia_orbital_response(
+        data.gaia_al.times_yr,
+        data.gaia_al.scan_angle_deg,
+        raa.params,
+        injected_response,
+    )
+    n_final_multi = final_prediction.n_multi_peak
+    diagnostics = ComparisonDiagnostics(
+        selection=selection,
+        raa_scientific_valid=(raa.success and n_final_multi == 0),
+        raa_final_multi_peak_predicted=n_final_multi,
+    )
+    if return_diagnostics:
+        return data, photo, raa, diagnostics
     return data, photo, raa
 
 
@@ -67,7 +157,15 @@ def _record(
     sigma_response_mas: float,
     seed: int,
     schedule: GaiaScanSchedule,
+    diagnostics: ComparisonDiagnostics,
 ) -> dict:
+    selection = diagnostics.selection
+    scientific_valid = result.success
+    final_multi = 0
+    if model_name == "resolution_aware":
+        scientific_valid = diagnostics.raa_scientific_valid
+        final_multi = diagnostics.raa_final_multi_peak_predicted
+
     row = {
         "model": model_name,
         "seed": int(seed),
@@ -77,12 +175,19 @@ def _record(
         "chi2": result.chi2,
         "reduced_chi2": result.reduced_chi2,
         "success": result.success,
+        "scientific_valid": bool(scientific_valid),
         "nfev": result.nfev,
         "gaia_ra_deg": schedule.ra_deg,
         "gaia_dec_deg": schedule.dec_deg,
         "gaia_release": schedule.release,
         "gaia_schedule_source": schedule.source,
-        "gaia_n_transits": schedule.n_transits,
+        "gaia_n_transits": selection.n_total,
+        "gaia_n_single_peak_used": selection.n_single_peak,
+        "gaia_n_multi_peak_flagged": selection.n_multi_peak,
+        "gaia_multi_peak_fraction": selection.multi_peak_fraction,
+        "gaia_critical_separation_sigma": selection.critical_separation_sigma,
+        "gaia_max_projected_separation_sigma": selection.max_projected_separation_sigma,
+        "gaia_final_multi_peak_predicted": int(final_multi),
         "gaia_schedule_duration_yr": schedule.duration_yr,
     }
     for name, true_value in asdict(truth).items():
@@ -110,7 +215,6 @@ def resolution_bias_scan(
     rv_sigma_kms: float = 0.10,
     gaia_sigma_mas: float = 0.10,
 ) -> list[dict]:
-    """Map bias versus angular resolution using one explicit Gaia schedule."""
     gaia_schedule.validate()
     if sigma_response_mas <= 0:
         raise ValueError("sigma_response_mas must be > 0")
@@ -127,7 +231,7 @@ def resolution_bias_scan(
             parallax = target_a_mas / base_truth.a_rel_au
             truth = replace(base_truth, parallax_mas=parallax, beta_g=float(beta))
             for seed in seeds:
-                _, photo, raa = compare_models_once(
+                _, photo, raa, diagnostics = compare_models_once(
                     truth,
                     gaia_schedule,
                     sigma_response_mas=sigma_response_mas,
@@ -138,9 +242,16 @@ def resolution_bias_scan(
                     ast_sigma_mas=ast_sigma_mas,
                     rv_sigma_kms=rv_sigma_kms,
                     gaia_sigma_mas=gaia_sigma_mas,
+                    return_diagnostics=True,
                 )
-                rows.append(_record("photocentre", truth, photo, sigma_response_mas, int(seed), gaia_schedule))
-                rows.append(_record("resolution_aware", truth, raa, sigma_response_mas, int(seed), gaia_schedule))
+                rows.append(_record(
+                    "photocentre", truth, photo, sigma_response_mas, int(seed),
+                    gaia_schedule, diagnostics,
+                ))
+                rows.append(_record(
+                    "resolution_aware", truth, raa, sigma_response_mas, int(seed),
+                    gaia_schedule, diagnostics,
+                ))
     return rows
 
 
