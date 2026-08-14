@@ -5,6 +5,7 @@ import numpy as np
 
 from .kepler import BinaryParams
 from .model import (
+    AbsoluteAstrometryConfig,
     GaiaResponseConfig,
     predict_gaia_orbital_al,
     predict_relative_astrometry,
@@ -37,6 +38,9 @@ class GaiaALData:
     ra_deg: float | None = None
     dec_deg: float | None = None
     release: str = "custom"
+    # Present only when the absolute five-parameter astrometric model is in
+    # use. ``None`` means the channel carries the orbital wobble alone.
+    astrometry: AbsoluteAstrometryConfig | None = None
 
 
 @dataclass(frozen=True)
@@ -64,6 +68,7 @@ def simulate_joint_data(
     ast_sigma_mas: float = 0.20,
     rv_sigma_kms: float = 0.10,
     gaia_sigma_mas: float = 0.10,
+    astrometry: AbsoluteAstrometryConfig | None = None,
 ) -> JointData:
     """Generate a controlled synthetic joint dataset on an explicit Gaia schedule.
 
@@ -104,7 +109,7 @@ def simulate_joint_data(
 
     t_gaia = np.asarray(gaia_schedule.times_yr, dtype=float).copy()
     scan = np.asarray(gaia_schedule.scan_angle_deg, dtype=float).copy()
-    gaia_true = predict_gaia_orbital_al(t_gaia, scan, params, gaia_response)
+    gaia_true = predict_gaia_orbital_al(t_gaia, scan, params, gaia_response, astrometry)
     gaia_sig = np.full(len(t_gaia), gaia_sigma_mas, dtype=float)
     gaia_obs = gaia_true + rng.normal(0.0, gaia_sig)
 
@@ -120,5 +125,6 @@ def simulate_joint_data(
             ra_deg=gaia_schedule.ra_deg,
             dec_deg=gaia_schedule.dec_deg,
             release=gaia_schedule.release,
+            astrometry=astrometry,
         ),
     )

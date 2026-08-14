@@ -27,7 +27,18 @@ ALL_PARAMETER_NAMES = (
 # instead of asserting that its width is known exactly.
 RESPONSE_PARAMETER_NAMES = ("sigma_response_mas",)
 
-ALL_FREE_NAMES = ALL_PARAMETER_NAMES + RESPONSE_PARAMETER_NAMES
+# Absolute astrometric parameters of the barycentre. They are deliberately NOT
+# in the default free set: including them would change every existing
+# experiment. Request them explicitly when the Gaia channel carries a sky
+# position and epoch, so that the orbit is fitted jointly with parallax and
+# proper motion rather than in isolation.
+ASTROMETRIC_PARAMETER_NAMES = (
+    "pmra_mas_yr", "pmdec_mas_yr", "delta_alpha_star_mas", "delta_delta_mas",
+)
+
+ALL_FREE_NAMES = (
+    ALL_PARAMETER_NAMES + ASTROMETRIC_PARAMETER_NAMES + RESPONSE_PARAMETER_NAMES
+)
 
 
 @dataclass(frozen=True)
@@ -79,6 +90,10 @@ def _bounds_for(
         return -1000.0, 1000.0
     if name == "beta_g":
         return 0.0, 0.5
+    if name in ("pmra_mas_yr", "pmdec_mas_yr"):
+        return -1000.0, 1000.0
+    if name in ("delta_alpha_star_mas", "delta_delta_mas"):
+        return -1000.0, 1000.0
     raise KeyError(name)
 
 
@@ -110,7 +125,9 @@ def joint_residuals(params: BinaryParams, data: JointData, gaia_response: GaiaRe
 
     gaia = data.gaia_al
     if len(gaia.times_yr):
-        pred = predict_gaia_orbital_al(gaia.times_yr, gaia.scan_angle_deg, params, gaia_response)
+        pred = predict_gaia_orbital_al(
+            gaia.times_yr, gaia.scan_angle_deg, params, gaia_response, gaia.astrometry
+        )
         pieces.append((gaia.values_mas - pred) / gaia.sigma_mas)
 
     if not pieces:
@@ -139,7 +156,8 @@ def fit_joint(
     if len(set(names)) != len(names):
         raise ValueError("free_names contains duplicates")
 
-    physical_names = tuple(n for n in names if n in ALL_PARAMETER_NAMES)
+    binary_field_names = ALL_PARAMETER_NAMES + ASTROMETRIC_PARAMETER_NAMES
+    physical_names = tuple(n for n in names if n in binary_field_names)
     response_names = tuple(n for n in names if n in RESPONSE_PARAMETER_NAMES)
     if response_names and gaia_response.mode == "photocentre":
         raise ValueError("the photocentre response has no width to fit")

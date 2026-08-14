@@ -5,6 +5,7 @@ import math
 
 import numpy as np
 
+from .astrometry import absolute_offsets_mas
 from .kepler import BinaryParams, relative_astrometry_mas, radial_velocities_kms
 from .gaia import (
     _global_peak_coordinate,
@@ -55,9 +56,40 @@ def predict_sb2_rv(times_yr, params: BinaryParams):
     return radial_velocities_kms(times_yr, params)
 
 
+@dataclass(frozen=True)
+class AbsoluteAstrometryConfig:
+    """Sky position and epoch needed to evaluate the parallactic ellipse.
+
+    Supplying this to the Gaia channel switches on the five-parameter absolute
+    motion: position offset, proper motion and the parallax factors. Without it
+    the channel models the orbital wobble alone, which is the configuration all
+    previously frozen results were produced with.
+    """
+
+    ra_deg: float
+    dec_deg: float
+    mission_start_decimalyear: float
+    reference_time_yr: float = 0.0
+
+
 def _relative_al(times_yr, scan_angle_deg, params: BinaryParams):
     rel = relative_astrometry_mas(times_yr, params)
     return project_along_scan(rel[:, 0], rel[:, 1], scan_angle_deg)
+
+
+def absolute_al(times_yr, scan_angle_deg, params: BinaryParams, astrometry):
+    """Along-scan projection of the barycentre's absolute motion."""
+    if astrometry is None:
+        return 0.0
+    alpha_star, delta = absolute_offsets_mas(
+        times_yr,
+        params,
+        ra_deg=astrometry.ra_deg,
+        dec_deg=astrometry.dec_deg,
+        mission_start_decimalyear=astrometry.mission_start_decimalyear,
+        reference_time_yr=astrometry.reference_time_yr,
+    )
+    return project_along_scan(alpha_star, delta, scan_angle_deg)
 
 
 def predict_gaia_orbital_response(
@@ -108,6 +140,7 @@ def predict_gaia_orbital_al(
     scan_angle_deg,
     params: BinaryParams,
     response: GaiaResponseConfig = GaiaResponseConfig(),
+    astrometry: AbsoluteAstrometryConfig | None = None,
 ):
     """Predict a unique AL coordinate in the surrogate single-peak domain.
 
@@ -119,8 +152,9 @@ def predict_gaia_orbital_al(
     """
     d_al = _relative_al(times_yr, scan_angle_deg, params)
     B = params.mass_fraction_secondary
+    absolute = absolute_al(times_yr, scan_angle_deg, params, astrometry)
     if response.mode == "photocentre":
-        return photocentre_along_scan(d_al, B, params.beta_g)
+        return photocentre_along_scan(d_al, B, params.beta_g) + absolute
     if response.mode == "blended_gaussian_peak":
         if response.sigma_mas is None:
             raise ValueError("sigma_mas is required for blended_gaussian_peak mode")
@@ -133,9 +167,10 @@ def predict_gaia_orbital_al(
                     d_al, B, params.beta_g,
                     float(response.sigma_mas), float(response.sigma_secondary_mas),
                 )
+            peak = peak + absolute
             return float(peak[0]) if scalar else peak
         return blended_gaussian_peak(
             d_al, B, params.beta_g, response.sigma_mas,
             sigma_secondary_mas=response.sigma_secondary_mas,
-        )
+        ) + absolute
     raise ValueError(f"unknown Gaia response mode: {response.mode}")
