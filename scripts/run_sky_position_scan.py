@@ -10,6 +10,12 @@ import numpy as np
 from raa_orbit_model.experiments import write_rows_csv
 from raa_orbit_model.kepler import BinaryParams
 from raa_orbit_model.scanning import schedule_from_csv, schedule_from_gaiascanlaw, write_schedule_csv
+from raa_orbit_model.experiment_config import (
+    add_noise_arguments,
+    add_orbit_arguments,
+    noise_kwargs_from_args,
+    truth_from_args,
+)
 from raa_orbit_model.sky_experiments import sky_resolution_bias_scan
 from raa_orbit_model.sky_study import (
     DEFAULT_ECLIPTIC_LATITUDES_DEG,
@@ -71,6 +77,8 @@ def main() -> None:
     parser.add_argument("--apply-astrometry-gaps", action="store_true")
     parser.add_argument("--schedule-only", action="store_true", help="generate/archive schedules and scan diagnostics without fitting")
     parser.add_argument("--overwrite", action="store_true", help="regenerate schedules and rerun completed per-position fit files")
+    add_orbit_arguments(parser)
+    add_noise_arguments(parser)
     args = parser.parse_args()
 
     if args.seeds <= 0:
@@ -131,18 +139,11 @@ def main() -> None:
         external_baseline_yr = _release_window_yr(args.release)
     print(f"fixed external astrometry/RV baseline: {external_baseline_yr:.9f} yr")
 
-    truth = BinaryParams(
-        period_yr=2.0,
-        t_peri_yr=0.15,
-        eccentricity=0.25,
-        inclination_deg=72.0,
-        omega_deg=55.0,
-        node_deg=120.0,
-        m1_msun=1.25,
-        m2_msun=0.85,
-        parallax_mas=20.0,
-        gamma_kms=7.0,
-        beta_g=0.20,
+    truth = truth_from_args(args, parser)
+    noise_kwargs = noise_kwargs_from_args(args, parser)
+    print(
+        f"orbit: P={truth.period_yr} yr e={truth.eccentricity} i={truth.inclination_deg} deg "
+        f"M1={truth.m1_msun} M2={truth.m2_msun} Msun (q={truth.q:.4f})"
     )
     expected_per_position = len(args.a_over_sigma_values) * len(args.beta_values) * args.seeds * 2
     expected_total = expected_per_position * len(positions)
@@ -169,6 +170,7 @@ def main() -> None:
             beta_values=tuple(args.beta_values),
             seeds=tuple(range(args.seeds)),
             sigma_response_mas=args.sigma_response_mas,
+            **noise_kwargs,
         )
         augment_bias_rows(rows, position, diagnostics)
         write_rows_csv(rows, str(result_path))
