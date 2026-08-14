@@ -6,6 +6,7 @@ import numpy as np
 from scipy.optimize import least_squares
 
 from .kepler import BinaryParams
+from .likelihoods import gaussian_1d_loglike, gaussian_2d_loglike
 from .model import (
     GaiaResponseConfig,
     predict_gaia_orbital_al,
@@ -133,6 +134,57 @@ def joint_residuals(params: BinaryParams, data: JointData, gaia_response: GaiaRe
     if not pieces:
         raise ValueError("joint dataset contains no observations")
     return np.concatenate(pieces)
+
+
+def joint_loglike(
+    params: BinaryParams,
+    data: JointData,
+    gaia_response: GaiaResponseConfig,
+    *,
+    gaia_jitter_mas: float = 0.0,
+    rv_jitter_kms: float = 0.0,
+) -> float:
+    """Gaussian log-likelihood of all three channels.
+
+    ``joint_residuals`` returns whitened residuals, whose sum of squares is a
+    chi-square. That is sufficient for least squares, where the normalisation
+    is constant, but not for sampling with free jitter terms, where the
+    ``log(variance)`` penalty is what stops the jitter running away. This
+    routine therefore builds the full likelihood, including normalisation.
+    """
+    params.validate()
+    if gaia_jitter_mas < 0 or rv_jitter_kms < 0:
+        raise ValueError("jitter terms must be >= 0")
+    total = 0.0
+
+    ast = data.relative_astrometry
+    if len(ast.times_yr):
+        total += gaussian_2d_loglike(
+            ast.values_mas,
+            predict_relative_astrometry(ast.times_yr, params),
+            ast.covariance_mas2,
+        )
+
+    rv = data.sb2_rv
+    if len(rv.times_yr):
+        total += gaussian_1d_loglike(
+            rv.values_kms,
+            predict_sb2_rv(rv.times_yr, params),
+            rv.sigma_kms,
+            jitter=rv_jitter_kms,
+        )
+
+    gaia = data.gaia_al
+    if len(gaia.times_yr):
+        total += gaussian_1d_loglike(
+            gaia.values_mas,
+            predict_gaia_orbital_al(
+                gaia.times_yr, gaia.scan_angle_deg, params, gaia_response, gaia.astrometry
+            ),
+            gaia.sigma_mas,
+            jitter=gaia_jitter_mas,
+        )
+    return float(total)
 
 
 def fit_joint(
