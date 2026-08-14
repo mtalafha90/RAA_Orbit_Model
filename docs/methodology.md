@@ -293,9 +293,13 @@ This comparison is central to demonstrating whether the additional measurement p
 
 Where suitable DR3 NSS systems exist, compare posterior predictions against published catalogue-level solutions while explicitly acknowledging that epoch data are unavailable.
 
+**Not executed.** The Gaia archive is unreachable from the development environment, so no DR3 row has been retrieved and no consistency with real data is claimed. The conversion, query and selection machinery are implemented and tested offline in `src/raa_orbit_model/dr3_validation.py`; see `docs/real_data_validation.md` for status and for the selection caveat that DR3 is depleted in partially resolved doubles.
+
 ### V7 — DR4 epoch/image validation
 
 Only after DR4 epoch products and calibration documentation are released should the image/epoch model be validated against real Gaia measurement-level data.
+
+**Not possible yet.** Gaia DR4 is expected on 2 December 2026. See `docs/real_data_validation.md`.
 
 ## 12. Falsifiable scientific criterion
 
