@@ -12,9 +12,14 @@ The project investigates whether a target-level joint inference can combine:
 2. both radial-velocity curves of a double-lined spectroscopic binary (SB2), and
 3. Gaia along-scan epoch astrometry or epoch images using a **scan-angle- and resolution-aware measurement model** rather than assuming that Gaia always measures the photocentre.
 
-The broad combination “Gaia + RV + relative astrometry” is **not novel**. BINARYS already combines Hipparcos/Gaia absolute astrometry with relative astrometry and/or RV, and can handle SB2 velocities. The specific candidate gap recorded here is narrower: target-level inference in the luminous, marginally/partially resolved regime where the Gaia measured position depends on projected separation and scan angle and is not generally equal to a simple photocentre.
+Two things here are **not novel**, and the project does not claim them.
 
-**No novelty/priority claim is made at this stage.** The literature record is maintained in `docs/literature_gap.md`.
+1. The broad combination “Gaia + RV + relative astrometry”. BINARYS already combines Hipparcos/Gaia absolute astrometry with relative astrometry and/or RV, and can handle SB2 velocities.
+2. **The scan-angle- and resolution-aware measurement response itself.** El-Badry et al. (2024) released `gaiamock`, whose `al_bias_binary` already places the measured along-scan coordinate at the peak of the combined flux profile, following Lindegren (2022). This project's surrogate reproduces that published response to better than 0.01% — see `docs/gaiamock_benchmark.md`.
+
+The candidate gap is narrower than originally recorded: in `gaiamock` the resolution-aware response is used **only to generate** data, and every fitting routine uses a plain photocentre model. The unaddressed question is the inference side — *fitting* that response at target level, jointly with resolved relative astrometry and both SB2 velocity curves, and propagating the measurement-model choice through to component masses.
+
+**No novelty/priority claim is made at this stage.** The literature record, including leads that could not be verified, is maintained in `docs/literature_gap.md`.
 
 ## Current implementation status
 
