@@ -166,12 +166,89 @@ def _global_peak_coordinate(
     return x
 
 
+def _unequal_width_grid(d, x1, x2, sigma1: float, sigma2: float, grid_size: int):
+    """Common evaluation grid spanning both components with generous wings."""
+    pad = 5.0 * max(sigma1, sigma2)
+    lo = np.minimum(x1, x2) - pad
+    hi = np.maximum(x1, x2) + pad
+    frac = np.linspace(0.0, 1.0, grid_size)
+    return lo, hi, lo[:, None] + (hi - lo)[:, None] * frac[None, :]
+
+
+def _unequal_width_profile(grid, x1, x2, f1: float, f2: float, sigma1: float, sigma2: float):
+    """Two-Gaussian profile with independent widths and equal-flux normalisation.
+
+    Each component is normalised by its own width so that ``f1`` and ``f2``
+    remain *integrated* flux fractions.  A wider component therefore has a
+    proportionally lower peak amplitude, which is the physically meaningful
+    behaviour when the two stars have different colours and hence different
+    effective line-spread widths.
+    """
+    z1 = (grid - x1[:, None]) / sigma1
+    z2 = (grid - x2[:, None]) / sigma2
+    return (f1 / sigma1) * np.exp(-0.5 * z1**2) + (f2 / sigma2) * np.exp(-0.5 * z2**2)
+
+
+def _unequal_width_peak_and_modes(
+    relative_al_mas,
+    mass_fraction_secondary,
+    beta_g,
+    sigma1: float,
+    sigma2: float,
+    *,
+    grid_size: int = 513,
+    newton_steps: int = 12,
+):
+    """Global maximum and mode count for the unequal-width surrogate.
+
+    The equal-width mode-splitting criterion has a closed form; the
+    unequal-width profile does not, so the number of modes is counted
+    numerically from sign changes of the first derivative.
+    """
+    d = np.atleast_1d(np.asarray(relative_al_mas, dtype=float))
+    x1, x2 = component_al_positions(d, mass_fraction_secondary)
+    x1 = np.asarray(x1, dtype=float)
+    x2 = np.asarray(x2, dtype=float)
+    f1, f2 = 1.0 - beta_g, beta_g
+
+    lo, hi, grid = _unequal_width_grid(d, x1, x2, sigma1, sigma2, grid_size)
+    profile = _unequal_width_profile(grid, x1, x2, f1, f2, sigma1, sigma2)
+
+    # Interior maxima are downward zero crossings of the discrete derivative.
+    slope = np.diff(profile, axis=1)
+    n_peaks = np.count_nonzero((slope[:, :-1] > 0.0) & (slope[:, 1:] <= 0.0), axis=1)
+    n_peaks = np.maximum(n_peaks, 1).astype(int)
+
+    x = grid[np.arange(len(d)), np.argmax(profile, axis=1)].copy()
+    a1, a2 = f1 / sigma1, f2 / sigma2
+    for _ in range(newton_steps):
+        dx1 = x - x1
+        dx2 = x - x2
+        e1 = a1 * np.exp(-0.5 * (dx1 / sigma1)**2)
+        e2 = a2 * np.exp(-0.5 * (dx2 / sigma2)**2)
+        dI = -(dx1 * e1 / sigma1**2 + dx2 * e2 / sigma2**2)
+        d2I = (
+            ((dx1**2 / sigma1**4) - 1.0 / sigma1**2) * e1
+            + ((dx2**2 / sigma2**4) - 1.0 / sigma2**2) * e2
+        )
+        safe = np.abs(d2I) > 1e-18
+        step = np.zeros_like(x)
+        step[safe] = dI[safe] / d2I[safe]
+        x_new = np.clip(x - step, lo, hi)
+        if np.max(np.abs(x_new - x)) < 1e-12:
+            x = x_new
+            break
+        x = x_new
+    return x, n_peaks
+
+
 def blended_gaussian_response(
     relative_al_mas,
     mass_fraction_secondary,
     beta_g,
     sigma_mas,
     *,
+    sigma_secondary_mas: float | None = None,
     grid_size: int = 129,
     newton_steps: int = 12,
 ) -> BlendedGaussianResponse:
@@ -183,25 +260,43 @@ def blended_gaussian_response(
     """
     if sigma_mas <= 0:
         raise ValueError("sigma_mas must be > 0")
+    if sigma_secondary_mas is not None and sigma_secondary_mas <= 0:
+        raise ValueError("sigma_secondary_mas must be > 0")
     if grid_size < 17:
         raise ValueError("grid_size must be >= 17")
-    critical = critical_blended_separation_sigma(beta_g)
 
     scalar = np.ndim(relative_al_mas) == 0
     d = np.atleast_1d(np.asarray(relative_al_mas, dtype=float))
     separation_sigma = np.abs(d) / float(sigma_mas)
-    n_peaks = np.where(separation_sigma > critical, 2, 1).astype(int)
-    valid = n_peaks == 1
-    al = np.full(len(d), np.nan, dtype=float)
-    if np.any(valid):
-        al[valid] = _global_peak_coordinate(
-            d[valid],
+
+    unequal = sigma_secondary_mas is not None and float(sigma_secondary_mas) != float(sigma_mas)
+    if unequal:
+        # No closed-form splitting criterion exists for unequal widths, so the
+        # mode count is established numerically and no critical ratio is quoted.
+        critical = float("nan")
+        peak, n_peaks = _unequal_width_peak_and_modes(
+            d,
             mass_fraction_secondary,
             beta_g,
-            sigma_mas,
-            grid_size=grid_size,
+            float(sigma_mas),
+            float(sigma_secondary_mas),
             newton_steps=newton_steps,
         )
+        al = np.where(n_peaks == 1, peak, np.nan)
+    else:
+        critical = critical_blended_separation_sigma(beta_g)
+        n_peaks = np.where(separation_sigma > critical, 2, 1).astype(int)
+        valid = n_peaks == 1
+        al = np.full(len(d), np.nan, dtype=float)
+        if np.any(valid):
+            al[valid] = _global_peak_coordinate(
+                d[valid],
+                mass_fraction_secondary,
+                beta_g,
+                sigma_mas,
+                grid_size=grid_size,
+                newton_steps=newton_steps,
+            )
 
     if scalar:
         return BlendedGaussianResponse(
@@ -218,6 +313,8 @@ def blended_gaussian_peak(
     mass_fraction_secondary,
     beta_g,
     sigma_mas,
+    *,
+    sigma_secondary_mas: float | None = None,
     grid_size: int = 129,
     newton_steps: int = 12,
 ):
@@ -232,6 +329,7 @@ def blended_gaussian_peak(
         mass_fraction_secondary,
         beta_g,
         sigma_mas,
+        sigma_secondary_mas=sigma_secondary_mas,
         grid_size=grid_size,
         newton_steps=newton_steps,
     )

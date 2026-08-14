@@ -50,8 +50,18 @@ def single_peak_schedule_for_response(
     truth: BinaryParams,
     gaia_schedule: GaiaScanSchedule,
     response: GaiaResponseConfig,
+    *,
+    retain_multi_peak: bool = False,
 ) -> GaiaSinglePeakSelection:
-    """Keep only epochs where the surrogate has one unique AL mode."""
+    """Keep only epochs where the surrogate has one unique AL mode.
+
+    ``retain_multi_peak=True`` instead keeps every epoch and merely records how
+    many are multi-peaked. That is required to explore separations beyond the
+    mode-splitting boundary, where the global-maximum surrogate still varies
+    continuously for an unequal-flux pair but no longer represents anything
+    Gaia would report as a single unresolved source. Results obtained that way
+    must always be reported alongside the multi-peak count.
+    """
     gaia_schedule.validate()
     prediction = predict_gaia_orbital_response(
         gaia_schedule.times_yr,
@@ -63,7 +73,9 @@ def single_peak_schedule_for_response(
     n_total = gaia_schedule.n_transits
     n_single = int(np.count_nonzero(valid))
     n_multi = int(n_total - n_single)
-    if n_single == 0:
+    if retain_multi_peak:
+        valid = np.ones(n_total, dtype=bool)
+    elif n_single == 0:
         raise ValueError("all Gaia epochs are multi-peak in the current surrogate")
 
     source = gaia_schedule.source

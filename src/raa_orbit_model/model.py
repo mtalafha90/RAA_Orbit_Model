@@ -8,6 +8,7 @@ import numpy as np
 from .kepler import BinaryParams, relative_astrometry_mas, radial_velocities_kms
 from .gaia import (
     _global_peak_coordinate,
+    _unequal_width_peak_and_modes,
     blended_gaussian_peak,
     blended_gaussian_response,
     photocentre_along_scan,
@@ -20,6 +21,11 @@ class GaiaResponseConfig:
     mode: str = "photocentre"  # "photocentre" or "blended_gaussian_peak"
     sigma_mas: float | None = None
     allow_multi_peak_continuation: bool = False
+    # Optional independent width for the secondary component. ``None`` keeps the
+    # equal-width surrogate used for all previously frozen results. Setting it
+    # moves the response outside that family, which is what makes controlled
+    # profile-shape misspecification experiments possible.
+    sigma_secondary_mas: float | None = None
 
 
 @dataclass(frozen=True)
@@ -82,7 +88,10 @@ def predict_gaia_orbital_response(
     if response.mode == "blended_gaussian_peak":
         if response.sigma_mas is None:
             raise ValueError("sigma_mas is required for blended_gaussian_peak mode")
-        result = blended_gaussian_response(d_al, B, params.beta_g, response.sigma_mas)
+        result = blended_gaussian_response(
+            d_al, B, params.beta_g, response.sigma_mas,
+            sigma_secondary_mas=response.sigma_secondary_mas,
+        )
         return GaiaALPrediction(
             values_mas=np.asarray(result.al_mas, dtype=float),
             single_peak_mask=np.asarray(result.single_peak_mask, dtype=bool),
@@ -117,7 +126,16 @@ def predict_gaia_orbital_al(
             raise ValueError("sigma_mas is required for blended_gaussian_peak mode")
         if response.allow_multi_peak_continuation:
             scalar = np.ndim(d_al) == 0
-            peak = _global_peak_coordinate(d_al, B, params.beta_g, response.sigma_mas)
+            if response.sigma_secondary_mas is None:
+                peak = _global_peak_coordinate(d_al, B, params.beta_g, response.sigma_mas)
+            else:
+                peak, _ = _unequal_width_peak_and_modes(
+                    d_al, B, params.beta_g,
+                    float(response.sigma_mas), float(response.sigma_secondary_mas),
+                )
             return float(peak[0]) if scalar else peak
-        return blended_gaussian_peak(d_al, B, params.beta_g, response.sigma_mas)
+        return blended_gaussian_peak(
+            d_al, B, params.beta_g, response.sigma_mas,
+            sigma_secondary_mas=response.sigma_secondary_mas,
+        )
     raise ValueError(f"unknown Gaia response mode: {response.mode}")

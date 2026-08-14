@@ -21,6 +21,14 @@ ALL_PARAMETER_NAMES = (
     "gamma_kms", "beta_g",
 )
 
+# Instrument-response parameters. These do not belong to BinaryParams because
+# they describe the measurement, not the binary. They may be included in
+# ``free_names`` to fit or marginalise over an imperfectly known Gaia response
+# instead of asserting that its width is known exactly.
+RESPONSE_PARAMETER_NAMES = ("sigma_response_mas",)
+
+ALL_FREE_NAMES = ALL_PARAMETER_NAMES + RESPONSE_PARAMETER_NAMES
+
 
 @dataclass(frozen=True)
 class JointFitResult:
@@ -32,6 +40,8 @@ class JointFitResult:
     n_free: int
     nfev: int
     cost: float
+    # Populated only when "sigma_response_mas" was fitted rather than asserted.
+    fitted_sigma_response_mas: float | None = None
 
     @property
     def dof(self) -> int:
@@ -42,7 +52,15 @@ class JointFitResult:
         return self.chi2 / self.dof if self.dof > 0 else np.nan
 
 
-def _bounds_for(name: str, initial: BinaryParams) -> tuple[float, float]:
+def _bounds_for(
+    name: str,
+    initial: BinaryParams,
+    sigma_response_mas: float | None = None,
+) -> tuple[float, float]:
+    if name == "sigma_response_mas":
+        if not sigma_response_mas or sigma_response_mas <= 0:
+            raise ValueError("fitting sigma_response_mas needs a positive starting width")
+        return 0.2 * sigma_response_mas, 5.0 * sigma_response_mas
     if name == "period_yr":
         return max(1e-5, 0.2 * initial.period_yr), 5.0 * initial.period_yr
     if name == "t_peri_yr":
@@ -115,23 +133,38 @@ def fit_joint(
     """
     initial.validate()
     names = tuple(free_names)
-    unknown = set(names) - set(ALL_PARAMETER_NAMES)
+    unknown = set(names) - set(ALL_FREE_NAMES)
     if unknown:
         raise ValueError(f"unknown free parameter(s): {sorted(unknown)}")
     if len(set(names)) != len(names):
         raise ValueError("free_names contains duplicates")
 
-    x0 = _pack(initial, names)
+    physical_names = tuple(n for n in names if n in ALL_PARAMETER_NAMES)
+    response_names = tuple(n for n in names if n in RESPONSE_PARAMETER_NAMES)
+    if response_names and gaia_response.mode == "photocentre":
+        raise ValueError("the photocentre response has no width to fit")
+
+    x0 = np.concatenate([
+        _pack(initial, physical_names),
+        np.array([float(gaia_response.sigma_mas) for _ in response_names], dtype=float),
+    ])
     if not names:
         r = joint_residuals(initial, data, gaia_response)
         return JointFitResult(initial, True, "no free parameters", float(r @ r), len(r), 0, 0, 0.5 * float(r @ r))
 
-    bounds = np.array([_bounds_for(name, initial) for name in names], dtype=float)
+    bounds = np.array(
+        [_bounds_for(name, initial, gaia_response.sigma_mas) for name in physical_names + response_names],
+        dtype=float,
+    )
     lb, ub = bounds[:, 0], bounds[:, 1]
+    n_physical = len(physical_names)
 
     def residual_vector(x):
-        p = _unpack(initial, names, x)
-        return joint_residuals(p, data, gaia_response)
+        p = _unpack(initial, physical_names, x[:n_physical])
+        response = gaia_response
+        if response_names:
+            response = replace(response, sigma_mas=float(x[n_physical]))
+        return joint_residuals(p, data, response)
 
     result = least_squares(
         residual_vector,
@@ -144,7 +177,7 @@ def fit_joint(
         gtol=1e-11,
         max_nfev=max_nfev,
     )
-    fitted = _unpack(initial, names, result.x)
+    fitted = _unpack(initial, physical_names, result.x[:n_physical])
     r = result.fun
     return JointFitResult(
         params=fitted,
@@ -155,4 +188,5 @@ def fit_joint(
         n_free=len(names),
         nfev=int(result.nfev),
         cost=float(result.cost),
+        fitted_sigma_response_mas=(float(result.x[n_physical]) if response_names else None),
     )
