@@ -12,9 +12,14 @@ The project investigates whether a target-level joint inference can combine:
 2. both radial-velocity curves of a double-lined spectroscopic binary (SB2), and
 3. Gaia along-scan epoch astrometry or epoch images using a **scan-angle- and resolution-aware measurement model** rather than assuming that Gaia always measures the photocentre.
 
-The broad combination “Gaia + RV + relative astrometry” is **not novel**. BINARYS already combines Hipparcos/Gaia absolute astrometry with relative astrometry and/or RV, and can handle SB2 velocities. The specific candidate gap recorded here is narrower: target-level inference in the luminous, marginally/partially resolved regime where the Gaia measured position depends on projected separation and scan angle and is not generally equal to a simple photocentre.
+Two things here are **not novel**, and the project does not claim them.
 
-**No novelty/priority claim is made at this stage.** The literature record is maintained in `docs/literature_gap.md`.
+1. The broad combination “Gaia + RV + relative astrometry”. BINARYS already combines Hipparcos/Gaia absolute astrometry with relative astrometry and/or RV, and can handle SB2 velocities.
+2. **The scan-angle- and resolution-aware measurement response itself.** El-Badry et al. (2024) released `gaiamock`, whose `al_bias_binary` already places the measured along-scan coordinate at the peak of the combined flux profile, following Lindegren (2022). This project's surrogate reproduces that published response to better than 0.01% — see `docs/gaiamock_benchmark.md`.
+
+The candidate gap is narrower than originally recorded: in `gaiamock` the resolution-aware response is used **only to generate** data, and every fitting routine uses a plain photocentre model. The unaddressed question is the inference side — *fitting* that response at target level, jointly with resolved relative astrometry and both SB2 velocity curves, and propagating the measurement-model choice through to component masses.
+
+**No novelty/priority claim is made at this stage.** The literature record, including leads that could not be verified, is maintained in `docs/literature_gap.md`.
 
 ## Current implementation status
 
@@ -42,24 +47,51 @@ The original uniform-angle pilot is preserved in `docs/first_injection_experimen
 
 ```text
 docs/
-  literature_gap.md             Evidence for and limits of the candidate research gap
+  literature_gap.md             Candidate gap, revised, with unverified leads marked
+  gaiamock_benchmark.md         Scoring the surrogate against the published response
   methodology.md                Mathematical and validation methodology
-  first_injection_experiment.md Original controlled uniform-angle pilot
+  real_data_validation.md       Status of validation steps V6 and V7
+  orbit_conventions.md          Orientation and angle conventions
+  multi_peak_validity.md        Mode-splitting boundary of the surrogate
   gaia_scanning_law.md          Mission-grounded schedule choice and caveats
+  sky_position_study.md         Sky-grid experiment design
+  full_sky_results.md           Frozen 46-position full-sky result
+  matched_n_control.md          Matched-transit-count control design
+  native_vs_matched_n53_results.md  Frozen native versus matched-N comparison
+  first_injection_experiment.md Original controlled uniform-angle pilot (superseded)
 src/raa_orbit_model/
   kepler.py                     Newtonian binary dynamics, relative astrometry, SB2 RVs
   gaia.py                       Along-scan projection and resolution-aware surrogate
+  gaiamock_reference.py         Published gaiamock response, for benchmarking only
+  astrometry.py                 Parallax factors, proper motion, position offset
   scanning.py                   GOST/gaiascanlaw schedule adapter and CSV archive
-  likelihoods.py                Likelihood building blocks
+  likelihoods.py                Gaussian likelihood building blocks
   model.py                      Joint forward model
   synthetic.py                  Synthetic datasets on explicit Gaia schedules
-  fit.py                        Bounded deterministic joint fitting
+  fit.py                        Bounded deterministic joint fitting and log-likelihood
+  sampling.py                   Affine-invariant ensemble posterior sampler
   experiments.py                Injection/recovery and bias-grid experiments
+  experiment_config.py          Orbit and noise axes shared by the runners
+  robustness.py                 Measurement-model misspecification controls
+  sky_study.py                  Ecliptic sky grid and scan-geometry diagnostics
+  sky_experiments.py            Sky-position bias scan
+  matched_control.py            Stratified matched-transit-count subsetting
+  matched_sky_experiments.py    Matched-N sky experiment
   bias_analysis.py              Paired model comparison and transition diagnostics
+  dr3_validation.py             DR3 NSS query, Thiele-Innes conversion, selection
 scripts/
   run_bias_scan.py              Bias scan on a specified Gaia sky position/schedule
   analyze_bias_scan.py          Paired summaries and publication-ready transition plots
+  run_sky_position_scan.py      Full-sky scan over an ecliptic grid
+  analyze_sky_position_scan.py  Sky maps, boundaries and correlations
+  run_matched_n_control.py      Matched-transit-count control run
+  compare_native_matched_n.py   Native versus matched-N comparison and figures
+  validate_against_dr3.py       Validation step V6 against published DR3 orbits
 ```
+
+Every experiment runner exposes the orbit (`--period-yr`, `--eccentricity`,
+`--mass-ratio`, …) and the per-channel noise levels (`--gaia-sigma-mas`, …).
+The defaults reproduce the frozen results exactly.
 
 ## Install and test
 

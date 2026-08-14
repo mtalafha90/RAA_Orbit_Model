@@ -18,6 +18,14 @@ class BinaryParams:
     parallax_mas: float
     gamma_kms: float = 0.0
     beta_g: float = 0.0
+    # Absolute astrometric parameters of the barycentre. These default to zero
+    # so that experiments modelling the orbital wobble alone are unaffected;
+    # they take effect only when the Gaia channel is given a sky position and
+    # mission epoch, which is what enables the parallactic ellipse.
+    pmra_mas_yr: float = 0.0
+    pmdec_mas_yr: float = 0.0
+    delta_alpha_star_mas: float = 0.0
+    delta_delta_mas: float = 0.0
 
     def validate(self) -> None:
         if self.period_yr <= 0:

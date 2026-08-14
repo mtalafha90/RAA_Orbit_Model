@@ -17,6 +17,7 @@ def gaussian_1d_loglike(observed, model, sigma, jitter=0.0):
 
 
 def gaussian_2d_loglike(observed_xy, model_xy, covariance):
+    """Vectorised over epochs so this is usable inside a sampler."""
     y = np.asarray(observed_xy, dtype=float)
     m = np.asarray(model_xy, dtype=float)
     C = np.asarray(covariance, dtype=float)
@@ -24,10 +25,11 @@ def gaussian_2d_loglike(observed_xy, model_xy, covariance):
         raise ValueError("observed_xy and model_xy must have shape (N,2)")
     if C.shape != (len(y), 2, 2):
         raise ValueError("covariance must have shape (N,2,2)")
-    total = 0.0
-    for r, cov in zip(y - m, C):
-        sign, logdet = np.linalg.slogdet(cov)
-        if sign <= 0:
-            raise ValueError("each covariance matrix must be positive definite")
-        total += -0.5 * (r @ np.linalg.solve(cov, r) + logdet + 2.0 * LOG2PI)
-    return float(total)
+    if len(y) == 0:
+        return 0.0
+    sign, logdet = np.linalg.slogdet(C)
+    if np.any(sign <= 0):
+        raise ValueError("each covariance matrix must be positive definite")
+    r = y - m
+    quadratic = np.einsum("ni,ni->n", r, np.linalg.solve(C, r[..., None])[..., 0])
+    return float(-0.5 * np.sum(quadratic + logdet + 2.0 * LOG2PI))

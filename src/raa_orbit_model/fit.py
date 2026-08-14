@@ -6,6 +6,7 @@ import numpy as np
 from scipy.optimize import least_squares
 
 from .kepler import BinaryParams
+from .likelihoods import gaussian_1d_loglike, gaussian_2d_loglike
 from .model import (
     GaiaResponseConfig,
     predict_gaia_orbital_al,
@@ -27,7 +28,18 @@ ALL_PARAMETER_NAMES = (
 # instead of asserting that its width is known exactly.
 RESPONSE_PARAMETER_NAMES = ("sigma_response_mas",)
 
-ALL_FREE_NAMES = ALL_PARAMETER_NAMES + RESPONSE_PARAMETER_NAMES
+# Absolute astrometric parameters of the barycentre. They are deliberately NOT
+# in the default free set: including them would change every existing
+# experiment. Request them explicitly when the Gaia channel carries a sky
+# position and epoch, so that the orbit is fitted jointly with parallax and
+# proper motion rather than in isolation.
+ASTROMETRIC_PARAMETER_NAMES = (
+    "pmra_mas_yr", "pmdec_mas_yr", "delta_alpha_star_mas", "delta_delta_mas",
+)
+
+ALL_FREE_NAMES = (
+    ALL_PARAMETER_NAMES + ASTROMETRIC_PARAMETER_NAMES + RESPONSE_PARAMETER_NAMES
+)
 
 
 @dataclass(frozen=True)
@@ -79,6 +91,10 @@ def _bounds_for(
         return -1000.0, 1000.0
     if name == "beta_g":
         return 0.0, 0.5
+    if name in ("pmra_mas_yr", "pmdec_mas_yr"):
+        return -1000.0, 1000.0
+    if name in ("delta_alpha_star_mas", "delta_delta_mas"):
+        return -1000.0, 1000.0
     raise KeyError(name)
 
 
@@ -110,12 +126,65 @@ def joint_residuals(params: BinaryParams, data: JointData, gaia_response: GaiaRe
 
     gaia = data.gaia_al
     if len(gaia.times_yr):
-        pred = predict_gaia_orbital_al(gaia.times_yr, gaia.scan_angle_deg, params, gaia_response)
+        pred = predict_gaia_orbital_al(
+            gaia.times_yr, gaia.scan_angle_deg, params, gaia_response, gaia.astrometry
+        )
         pieces.append((gaia.values_mas - pred) / gaia.sigma_mas)
 
     if not pieces:
         raise ValueError("joint dataset contains no observations")
     return np.concatenate(pieces)
+
+
+def joint_loglike(
+    params: BinaryParams,
+    data: JointData,
+    gaia_response: GaiaResponseConfig,
+    *,
+    gaia_jitter_mas: float = 0.0,
+    rv_jitter_kms: float = 0.0,
+) -> float:
+    """Gaussian log-likelihood of all three channels.
+
+    ``joint_residuals`` returns whitened residuals, whose sum of squares is a
+    chi-square. That is sufficient for least squares, where the normalisation
+    is constant, but not for sampling with free jitter terms, where the
+    ``log(variance)`` penalty is what stops the jitter running away. This
+    routine therefore builds the full likelihood, including normalisation.
+    """
+    params.validate()
+    if gaia_jitter_mas < 0 or rv_jitter_kms < 0:
+        raise ValueError("jitter terms must be >= 0")
+    total = 0.0
+
+    ast = data.relative_astrometry
+    if len(ast.times_yr):
+        total += gaussian_2d_loglike(
+            ast.values_mas,
+            predict_relative_astrometry(ast.times_yr, params),
+            ast.covariance_mas2,
+        )
+
+    rv = data.sb2_rv
+    if len(rv.times_yr):
+        total += gaussian_1d_loglike(
+            rv.values_kms,
+            predict_sb2_rv(rv.times_yr, params),
+            rv.sigma_kms,
+            jitter=rv_jitter_kms,
+        )
+
+    gaia = data.gaia_al
+    if len(gaia.times_yr):
+        total += gaussian_1d_loglike(
+            gaia.values_mas,
+            predict_gaia_orbital_al(
+                gaia.times_yr, gaia.scan_angle_deg, params, gaia_response, gaia.astrometry
+            ),
+            gaia.sigma_mas,
+            jitter=gaia_jitter_mas,
+        )
+    return float(total)
 
 
 def fit_joint(
@@ -139,7 +208,8 @@ def fit_joint(
     if len(set(names)) != len(names):
         raise ValueError("free_names contains duplicates")
 
-    physical_names = tuple(n for n in names if n in ALL_PARAMETER_NAMES)
+    binary_field_names = ALL_PARAMETER_NAMES + ASTROMETRIC_PARAMETER_NAMES
+    physical_names = tuple(n for n in names if n in binary_field_names)
     response_names = tuple(n for n in names if n in RESPONSE_PARAMETER_NAMES)
     if response_names and gaia_response.mode == "photocentre":
         raise ValueError("the photocentre response has no width to fit")

@@ -4,8 +4,13 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from raa_orbit_model.experiment_config import (
+    add_noise_arguments,
+    add_orbit_arguments,
+    noise_kwargs_from_args,
+    truth_from_args,
+)
 from raa_orbit_model.experiments import resolution_bias_scan, write_rows_csv
-from raa_orbit_model.kepler import BinaryParams
 from raa_orbit_model.scanning import (
     schedule_from_csv,
     schedule_from_gaiascanlaw,
@@ -76,6 +81,8 @@ def main():
             "uninterrupted nominal scanning law used for mission simulations"
         ),
     )
+    add_orbit_arguments(parser)
+    add_noise_arguments(parser)
     args = parser.parse_args()
 
     if args.seeds <= 0:
@@ -109,18 +116,10 @@ def main():
     print("beta_G grid:", " ".join(f"{v:g}" for v in beta_values))
     print(f"seeds: 0..{args.seeds - 1}")
 
-    truth = BinaryParams(
-        period_yr=2.0,
-        t_peri_yr=0.15,
-        eccentricity=0.25,
-        inclination_deg=72.0,
-        omega_deg=55.0,
-        node_deg=120.0,
-        m1_msun=1.25,
-        m2_msun=0.85,
-        parallax_mas=20.0,
-        gamma_kms=7.0,
-        beta_g=0.20,
+    truth = truth_from_args(args, parser)
+    print(
+        f"orbit: P={truth.period_yr} yr e={truth.eccentricity} i={truth.inclination_deg} deg "
+        f"M1={truth.m1_msun} M2={truth.m2_msun} Msun (q={truth.q:.4f})"
     )
     rows = resolution_bias_scan(
         truth,
@@ -129,6 +128,7 @@ def main():
         beta_values=beta_values,
         seeds=tuple(range(args.seeds)),
         sigma_response_mas=args.sigma_response_mas,
+        **noise_kwargs_from_args(args, parser),
     )
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
