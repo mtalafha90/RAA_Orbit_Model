@@ -1,108 +1,128 @@
 \section{Results}
 \label{sect:results}
 
-\subsection{Integrity and the Single-Peak Domain}
+\subsection{Experiment Integrity}
 
-All 23\,000 native-schedule fits and all 11\,040 matched-$N$ fits converged successfully and satisfy the final scientific-validity checks. No multi-peak epoch occurs anywhere in either final grid. The results reported in this section therefore characterize a single-peak response regime; they are not produced by assigning one coordinate to a visibly split two-mode profile.
+All 720 response-fidelity fits, all 270 external-information-control fits, and all 100 high-statistics matched-$M_2$ fits converge successfully and satisfy the final scientific-validity checks. All 87 Gaia-like epochs are retained in every one of these experiments, with zero multi-peak injections and zero final multi-peak predictions. The results below therefore describe the intended single-peak marginal-resolution regime rather than an arbitrary choice between two resolved modes.
 
-\subsection{Light-Fraction and Separation Dependence}
+\subsection{Response Fidelity at Fixed External-Orbit Quality}
 
-Figure~\ref{fig:surface} shows the native full-sky median discrepancy over the $(\betag,\asig)$ grid. The response is non-monotonic in light fraction. For every one of the 46 sky positions and each of the five tested separations, the largest median $\dchi$ occurs at $\betag=0.25$, i.e. in 230/230 sky/separation combinations. The reduced matched-$N$ grid independently gives the same result for all 184/184 combinations for which $\betag=0.05,0.25,0.45$ were compared.
-
-The fall-off toward $\betag\rightarrow0$ is expected because a dark secondary contributes no second light-profile component. The decrease toward equal light is also expected from symmetry: for an exact equal-light profile in the single-peak domain, the central maximum coincides with the flux-weighted photocentre. The most visible disagreement therefore occurs at intermediate light fraction.
-
-\begin{figure}
-\centering
-\includegraphics[width=0.92\textwidth]{figures/full_sky_dr4_beta_separation_surface}
-\caption{Full-sky native-schedule photocentre--RAA mismatch in the single-peak domain. Each cell is the median paired $\dchi$ over all sky positions and noise seeds, displayed logarithmically. The surrogate width $\sigma$ is a research scale and the horizontal coordinate is not a Gaia resolution threshold.}
-\label{fig:surface}
-\end{figure}
-
-\subsection{Full-Sky Variation}
-
-At $\betag=0.25$ and $\asig=1$, the sky distribution of median $\dchi$ has minimum 834.14, median 2195.39, and maximum 8766.64. The native $Q_{16}(\dchi)>0$ boundary first occurs at the smallest sampled ratio, $\asig=0.40$, for 41/46 positions, while the remaining five first cross at 0.50. Requiring all ten realizations at a sky position to have $\dchi>0$ moves the first crossing to 0.40 for 18 positions, 0.50 for 23, and 0.60 for five. These are descriptive sampled boundaries rather than formal detection thresholds.
-
-At the same $(\betag,\asig)$ point the Spearman rank correlation between median $\dchi$ and native transit count is
+The 720-fit hierarchy gives a clear ordering. At the central difficult point $\betag=0.25$, $\aalpha=1$, and $\psfelong=1.5$, the photocentre model $M_0$ has a median $\chi^2=1494.5$, compared with 352.4 for the equal-width $M_1$ response and 207.2 for the matched $M_2$ response. The paired medians are
 \begin{equation}
-\rho_{\rm S}=0.7709.
+{\rm median}\,\Delta\chi^2_{0,2}=1272.7,\qquad
+{\rm median}\,\Delta\chi^2_{1,2}=129.3.
 \end{equation}
-The corresponding correlations with maximum directional scan-angle gap and normalized directional entropy are $-0.640$ and $+0.358$, respectively. The native sky dependence therefore combines observation count and scan geometry.
+Thus $M_1$ is still measurably misspecified relative to the injected finite-elongation response, even though it is much closer than the photocentre model.
 
-\begin{figure}
-\centering
-\includegraphics[width=0.98\textwidth]{figures/full_sky_dr4_native_matched_sky}
-\caption{Sampled ecliptic-sky maps of the median paired $\dchi$ for $\betag=0.25$ and $\asig=1$, using the same logarithmic colour normalization. The left panel uses the native nominal schedules with 53--310 transits; the right panel uses the matched schedules with exactly 53 transits.}
-\label{fig:skymaps}
-\end{figure}
-
-\subsection{Matched-Transit-Count Control}
-
-Fixing all positions to $N=53$ reduces the sky-median $\dchi$ from 2195.39 to 1180.94, a ratio of 0.5379. The matched sky range is 300.04--2230.26, substantially narrower than the native 834.14--8766.64 range. Most importantly, the correlation with the \emph{native} transit count becomes
-\begin{equation}
-\rho_{\rm S}(\dchi_{53},N_{\rm native})=-0.0032,
-\end{equation}
-consistent with no monotonic relation. This shows directly that the strong native correlation was driven by the number of retained measurements rather than merely by another sky property correlated with $N$.
-
-Figure~\ref{fig:nativecontrol} compares native and matched values at each sky position. High-$N$ native schedules generally move furthest below the one-to-one line when reduced to 53 measurements.
-
-\begin{figure}
-\centering
-\includegraphics[width=0.80\textwidth]{figures/full_sky_dr4_native_vs_matched_n53}
-\caption{Native versus matched-$N=53$ median $\dchi$ across the 46 sky positions for $\betag=0.25$ and $\asig=1$. Colour denotes the native nominal transit count. The dashed line is equality.}
-\label{fig:nativecontrol}
-\end{figure}
-
-The ratio of model discrepancies closely follows the fraction of transits retained:
-\begin{equation}
-\rho_{\rm S}\left(
-\frac{\dchi_{53}}{\dchi_{\rm native}},
-\frac{53}{N_{\rm native}}
-\right)=0.9233.
-\end{equation}
-Furthermore,
-\begin{equation}
-{\rm median}\left[
-\frac{\dchi_{53}/\dchi_{\rm native}}{53/N_{\rm native}}
-\right]=1.0138.
-\label{eq:scaling}
-\end{equation}
-The median native discrepancy per transit is 21.44, compared with 22.28 in the matched control. Within this particular synthetic strong-response case, Equation~(\ref{eq:scaling}) is therefore consistent with an approximately linear accumulation of model-discrimination information with the number of Gaia-like observations.
-
-\begin{figure}
-\centering
-\includegraphics[width=0.80\textwidth]{figures/full_sky_dr4_matched_n53_scaling}
-\caption{Ratio of matched to native model discrepancy versus the retained-transit fraction. Each point is one sky position at $\betag=0.25$ and $\asig=1$. The dashed line is the simple proportional scaling $\dchi_{53}/\dchi_{\rm native}=53/N_{\rm native}$; colour denotes the normalized scan-angle entropy of the 53 retained measurements.}
-\label{fig:scaling}
-\end{figure}
-
-Equalizing the count does not erase all sky dependence. For the same control point, $\rho_{\rm S}(\dchi_{53},H_{\rm angle})=+0.340$ and $\rho_{\rm S}(\dchi_{53},\Delta\psi_{\max})=-0.275$, where $H_{\rm angle}$ is normalized directional entropy and $\Delta\psi_{\max}$ is the maximum directional angular gap. Thus scan geometry leaves a measurable residual contribution after the dominant count effect is removed.
-
-The transition boundary shifts accordingly. At $\betag=0.25$, 31/46 matched positions have $Q_{16}(\dchi)>0$ by $\asig=0.40$ and 15/46 first cross at 0.50. For the stricter all-seeds-positive condition the matched first crossings are 0.40 for eight positions, 0.50 for 24, 0.60 for 13, and 1.00 for one position. Additional observations therefore move the descriptive transition inward for a substantial part of the sky.
-
-\subsection{Bias in Physical Parameters}
-
-The photocentre model can partially absorb a wrong measurement response by changing fitted physical parameters. Pooling all sky positions and seeds at $\asig=1$, the median fractional photocentre bias in $\betag$ is $-22.6\%$, $-18.0\%$, $-12.6\%$, $-7.17\%$, and $-2.12\%$ for $\betag=0.05,0.15,0.25,0.35,0.45$, respectively. For the central $\betag=0.25$ case, the median photocentre mass biases pooled over the full sky are approximately $-0.61\%$ for $M_1$ and $-0.66\%$ for $M_2$, while the median parallax bias is $+0.51\%$. Across individual sky positions, the median $\betag$ bias ranges from $-19.3\%$ to $-8.0\%$, whereas median mass biases remain within about $-1.6\%$ to $+0.9\%$.
-
-This separation is informative: the parameter with the largest fractional bias need not coincide with the light fraction that maximizes $\dchi$. Model-discrimination strength and parameter-bias amplitude are distinct diagnostics.
+The physical-parameter consequences are more informative than $\Delta\chi^2$. Table~\ref{tab:fidelitycentral} shows the median fractional biases at the same point. $M_0$ biases the two component masses by $-1.26\%$ and $-1.28\%$, the parallax by $+0.93\%$, and the Gaia-band light fraction by $-15.34\%$. In contrast, $M_1$ reduces the mass biases to $-0.03\%$ and $-0.09\%$ and the parallax bias to $+0.13\%$, despite retaining a $-3.30\%$ light-fraction bias. The correctly specified $M_2$ solution is centered close to the injected values.
 
 \begin{table}
 \begin{center}
-\caption{Key Full-Sky and Matched-$N$ Results at $\betag=0.25$, $\asig=1$}
-\label{tab:results}
-\begin{tabular}{lcc}
+\caption{Median Biases at $\betag=0.25$, $\aalpha=1$, $\psfelong=1.5$}
+\label{tab:fidelitycentral}
+\begin{tabular}{lrrrrr}
 \hline\noalign{\smallskip}
-Quantity & Native schedules & Matched $N=53$\\
+Model & $\chi^2$ & $\delta M_1$ & $\delta M_2$ & $\delta\varpi$ & $\delta\betag$\\
+ &  & (\%) & (\%) & (\%) & (\%)\\
 \hline\noalign{\smallskip}
-Fit records in experiment & 23\,000 & 11\,040\\
-Sky positions & 46 & 46\\
-Transit count & 53--310 & 53\\
-Sky min median $\dchi$ & 834.14 & 300.04\\
-Sky median median $\dchi$ & 2195.39 & 1180.94\\
-Sky max median $\dchi$ & 8766.64 & 2230.26\\
-$\rho_{\rm S}(\dchi,N_{\rm native})$ & 0.7709 & $-0.0032$\\
-$\rho_{\rm S}(\dchi,H_{\rm angle})$ & 0.358$^\dagger$ & 0.340\\
+$M_0$ photocentre & 1494.5 & $-1.255$ & $-1.277$ & $+0.935$ & $-15.343$\\
+$M_1$ equal-width & 352.4 & $-0.026$ & $-0.095$ & $+0.132$ & $-3.303$\\
+$M_2$ oriented & 207.2 & $+0.070$ & $-0.014$ & $+0.083$ & $+0.053$\\
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
-\tablecomments{0.86\textwidth}{$^\dagger$Native value quoted for normalized directional entropy. All $\dchi$ values are descriptive paired model differences, not formal significance statistics.}
+\tablecomments{0.92\textwidth}{Biases are medians over ten paired noise realizations. $\delta x$ is defined by Equation~(\ref{eq:fracbias}). The response widths are research-surrogate scales, not Gaia calibration values.}
 \end{table}
+
+Figure~\ref{fig:responsemass} shows how the primary-mass bias changes with separation for this same light fraction and elongation. The coherent photocentre bias grows rapidly with $\aalpha$, whereas the response-aware models remain close to zero over the sampled range. The secondary-mass behavior is qualitatively similar.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.82\textwidth]{figures/response_fidelity_m1_bias}
+\caption{Median fractional bias in the primary mass as a function of $\aalpha$ for $\betag=0.25$ and $\psfelong=1.5$. The same ten noise realizations are fitted with $M_0$, $M_1$, and $M_2$. The plotted angular scale is dimensionless and is not a Gaia resolution threshold.}
+\label{fig:responsemass}
+\end{figure}
+
+The separation dependence of the likelihood mismatch is similarly steep. For $\betag=0.25$ and $\psfelong=1.5$, the median $\Delta\chi^2_{0,2}$ increases from 2.56 at $\aalpha=0.4$ to 46.43, 302.01, and 1272.68 at $\aalpha=0.6$, 0.8, and 1.0, respectively. The corresponding values for $\psfelong=3$ are 2.17, 46.15, 306.75, and 1301.43.
+
+At every one of the eight sampled combinations of $\aalpha$ and $\psfelong$, $\betag=0.25$ gives the largest ten-seed median $\Delta\chi^2_{0,2}$ among the three sampled light fractions. This reproduces the intermediate-light sensitivity previously found in the equal-width full-sky experiment, now with a finite-elongation injected response.
+
+\subsection{How Much Fidelity Beyond $M_1$ Is Needed?}
+
+The two elongations separate measurement-model mismatch from the broader failure of the photocentre approximation. At $\betag=0.25$ and $\aalpha=1$, increasing $\psfelong$ from 1.5 to 3.0 leaves the photocentre mismatch large:
+\begin{equation}
+{\rm median}\,\Delta\chi^2_{0,2}=1272.7\rightarrow1301.4.
+\end{equation}
+However, the equal-width mismatch collapses from
+\begin{equation}
+{\rm median}\,\Delta\chi^2_{1,2}=129.3
+\end{equation}
+to only 5.0, as expected from the $M_2\rightarrow M_1$ limiting behavior.
+
+The same convergence appears in the light fraction. At $\psfelong=1.5$, $M_1$ has a median $\betag$ bias of $-3.30\%$ at the central point; at $\psfelong=3$ it is only $-0.78\%$. The component-mass biases at $\psfelong=3$ are already below $0.05\%$ in magnitude for $M_1$. Thus a response can be detectably wrong in the Gaia-like likelihood while the component masses remain nearly unbiased because the independent orbit constraints absorb most of the dynamical information.
+
+The light fraction is more sensitive than the masses. For example, at $\aalpha=1$ and $\psfelong=1.5$, the fractional $M_1$ light-ratio bias reaches $-6.27\%$ at $\betag=0.05$, $-3.30\%$ at $\betag=0.25$, and $-0.48\%$ at $\betag=0.45$. In absolute light-fraction units, however, the central $\betag=0.25$ case remains the larger error. This distinction between fractional and absolute light-ratio error is important when identifying the most consequential regime.
+
+\subsection{External Orbit Information Controls the Mass Bias}
+
+The external-information control demonstrates why $M_1$ can look sufficient for the masses in the strongly constrained reference experiment. Figure~\ref{fig:externalmass} and Table~\ref{tab:external} show the effect of weakening only the resolved-astrometry and SB2 precision at the fixed response point in Equation~(\ref{eq:controlpoint}).
+
+\begin{figure}
+\centering
+\includegraphics[width=0.82\textwidth]{figures/external_information_m1_bias}
+\caption{Median primary-mass bias at the fixed difficult response point as the independent resolved-astrometry/SB2 constraints are weakened. Gaia-like sampling and noise are unchanged. The labels strong, medium, and weak refer only to the controlled uncertainties defined in Section~\ref{sect:experiments}; they are not universal observational-quality categories.}
+\label{fig:externalmass}
+\end{figure}
+
+\begin{table}
+\begin{center}
+\caption{Median Fractional Biases versus External-Orbit Strength}
+\label{tab:external}
+\begin{tabular}{llrrrr}
+\hline\noalign{\smallskip}
+Level & Model & $\delta M_1$ & $\delta M_2$ & $\delta\varpi$ & $\delta\betag$\\
+ & & (\%) & (\%) & (\%) & (\%)\\
+\hline\noalign{\smallskip}
+Strong & $M_0$ & $-1.273$ & $-1.230$ & $+0.830$ & $-15.343$\\
+       & $M_1$ & $-0.018$ & $-0.091$ & $+0.017$ & $-3.302$\\
+       & $M_2$ & $+0.067$ & $+0.004$ & $-0.004$ & $+0.059$\\
+Medium & $M_0$ & $-4.702$ & $-4.546$ & $+2.804$ & $-15.819$\\
+       & $M_1$ & $-0.606$ & $-0.845$ & $-0.324$ & $-3.808$\\
+       & $M_2$ & $+0.053$ & $+0.231$ & $-0.065$ & $+0.380$\\
+Weak   & $M_0$ & $-5.607$ & $-5.258$ & $+3.454$ & $-15.547$\\
+       & $M_1$ & $-1.019$ & $-1.395$ & $-1.436$ & $-5.303$\\
+       & $M_2$ & $+0.026$ & $+0.731$ & $-0.083$ & $+0.779$\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+\tablecomments{0.92\textwidth}{Each row is the median of 30 paired noise realizations at $\betag=0.25$, $\aalpha=1$, and $\psfelong=1.5$. Random scatter increases strongly in the weak-information $M_2$ case; the signed medians should therefore not be interpreted without their ensemble widths.}
+\end{table}
+
+For the photocentre model, weakening the independent orbit constraints increases the median component-mass bias from roughly $1.2\%$ to $5$--$6\%$, while the parallax bias grows from $+0.83\%$ to $+3.45\%$. The equal-width response also ceases to be effectively exact for the masses: its median biases increase from $-0.02\%$ and $-0.09\%$ in the strong case to $-1.02\%$ and $-1.40\%$ in the weak case.
+
+The correctly specified $M_2$ medians remain near zero compared with the increasingly broad random scatter. For example, the weak-case $M_2$ secondary-mass 16--84 percentile interval is approximately $-1.79\%$ to $+4.11\%$. Thus weakening the external orbit both increases estimator variance and gives a misspecified Gaia response more freedom to bias the physical solution.
+
+A useful consequence is that residual fit quality and physical bias do not move in parallel. The median $\Delta\chi^2_{0,2}$ decreases from 1289.8 in the strong case to 887.4 and 807.6 in the medium and weak cases, even as the photocentre mass biases increase. The wrong model can absorb more of the Gaia-response error by distorting the physical orbit when the external constraints are weaker. A smaller residual mismatch therefore does not imply a smaller dynamical bias.
+
+\subsection{The 100-Seed Matched-$M_2$ Solution Recenters on the Truth}
+
+The high-statistics matched-model control removes the ambiguity associated with the small ten-seed offsets. Over 100 independent $M_2\rightarrow M_2$ realizations at the central point, the median fractional parallax bias is
+\begin{equation}
++0.0167\%,
+\end{equation}
+with 16th and 84th percentiles of $-0.1274\%$ and $+0.1779\%$. Fifty-three per cent of the realizations have positive parallax error. The mean is $+0.0214\%$ and the standard deviation is $0.1509\%$. There is therefore no evidence in this control for a coherent positive parallax offset of the size suggested by the original ten-seed median.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.82\textwidth]{figures/matched_m2_parallax_bias}
+\caption{Distribution of fractional parallax bias over 100 independent matched $M_2\rightarrow M_2$ realizations at the central response point. The dashed line marks zero bias. The distribution spans both signs and is centered close to zero.}
+\label{fig:m2parallax}
+\end{figure}
+
+The component masses are similarly centered: the median fractional biases are $-0.0348\%$ for $M_1$ and $-0.0234\%$ for $M_2$. The median light-fraction bias is $-0.0189\%$. The median reduced chi-square is 0.982. These results support the interpretation that the matched $M_2$ deterministic estimator is internally consistent for the controlled injection, while the larger errors seen under $M_0$ and $M_1$ are measurement-model effects rather than an offset intrinsic to the fitted $M_2$ parameterization.
+
+\subsection{Supporting Scan-Schedule Dependence}
+
+The earlier equal-width full-sky experiment remains useful for understanding how strongly a response mismatch can accumulate under Gaia-like sampling. At $\betag=0.25$ and $a_{\rm rel,ang}/\sigma=1$, the median paired photocentre--resolution-aware discrepancy across the 46 native sky positions is 2195.39, with a range from 834.14 to 8766.64. The Spearman correlation with native transit count is 0.7709.
+
+After deterministically matching every sky position to 53 transits, the sky-median discrepancy falls to 1180.94 and the correlation with native transit count becomes $-0.0032$. The ratio of matched to native discrepancy follows the retained-transit fraction with $\rho_{\rm S}=0.9233$. Residual correlations with scan-angle entropy and maximum directional gap remain. These supporting experiments show that the \emph{strength} of observable model mismatch is strongly schedule dependent, even though the response-fidelity and external-information experiments above deliberately hold the schedule fixed to isolate physical-parameter bias.
