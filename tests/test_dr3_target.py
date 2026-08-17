@@ -2,8 +2,10 @@ import math
 
 from raa_orbit_model.dr3_target import (
     GJ765_DEC_DEG,
+    GJ765_HIP,
     GJ765_RA_DEG,
     flux_fraction_from_delta_mag,
+    gj765_cone_query,
     gj765_photocentre_benchmark,
     gj765_target_query,
     photocentre_axis_mas,
@@ -13,14 +15,21 @@ from raa_orbit_model.dr3_target import (
 from raa_orbit_model.dr3_validation import campbell_to_thiele_innes
 
 
-def test_gj765_query_uses_correct_target_and_left_join():
+def test_gj765_query_uses_hipparcos_crossmatch_and_left_join():
     query = gj765_target_query()
-    assert f"{GJ765_RA_DEG:.12f}" in query
-    assert f"{GJ765_DEC_DEG:.12f}" in query
+    assert "gaiadr3.hipparcos2_best_neighbour" in query
+    assert f"original_ext_source_id = {GJ765_HIP}" in query
     assert "LEFT OUTER JOIN gaiadr3.nss_two_body_orbit" in query
     assert "ipd_frac_multi_peak" in query
     assert "ipd_gof_harmonic_amplitude" in query
     assert "scan_direction_mean_k2" in query
+
+
+def test_gj765_cone_query_retains_simbad_position_only_as_fallback():
+    query = gj765_cone_query(10.0)
+    assert f"{GJ765_RA_DEG:.12f}" in query
+    assert f"{GJ765_DEC_DEG:.12f}" in query
+    assert "CIRCLE('ICRS'" in query
 
 
 def test_gj765_m0_photocentre_benchmark():
@@ -34,7 +43,7 @@ def test_gj765_m0_photocentre_benchmark():
     assert math.isclose(bench["predicted_M0_photocentre_axis_mas"], axis)
 
 
-def test_target_summary_selects_nearest_source_and_converts_astrometric_nss():
+def test_target_summary_selects_nearest_source_for_cone_fallback_and_converts_nss():
     A, B, F, G = campbell_to_thiele_innes(23.0, 80.0, 250.0, 293.0)
     rows = [
         {
@@ -71,10 +80,12 @@ def test_target_summary_selects_nearest_source_and_converts_astrometric_nss():
     assert math.isclose(summary.nearest_nss_inclination_deg, 80.0, abs_tol=1e-10)
 
 
-def test_target_summary_handles_no_nss_without_inventing_orbit():
+def test_target_summary_preserves_hip2_metadata_and_handles_no_nss():
     rows = [{
         "source_id": "target",
         "separation_arcsec": "0.01",
+        "hipparcos2_number_of_neighbours": "1",
+        "hipparcos2_gaia_astrometric_params": "5",
         "parallax": "33.0",
         "parallax_error": "0.4",
         "ruwe": "1.7",
@@ -85,6 +96,8 @@ def test_target_summary_handles_no_nss_without_inventing_orbit():
         "nss_solution_type": "",
     }]
     summary = summarize_target_rows(rows)
+    assert summary.hipparcos2_number_of_neighbours == 1
+    assert summary.hipparcos2_gaia_astrometric_params == 5
     assert summary.nss_orbit_count == 0
     assert summary.nss_solution_types == ()
     assert math.isnan(summary.nearest_nss_photocentre_axis_mas)
