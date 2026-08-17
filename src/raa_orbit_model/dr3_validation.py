@@ -1,16 +1,17 @@
-"""Validation step V6: consistency against published Gaia DR3 NSS solutions.
+"""Gaia DR3 catalogue-level consistency helpers.
 
-`docs/methodology.md` lists V6 as comparing this model against published DR3
-non-single-star orbital solutions, acknowledging that epoch data are not
-available. Every result in the project so far is synthetic, so V6 is the first
-contact with real measurements.
+The real-data validation ladder now distinguishes three stages. V6a has already
+checked the Newtonian resolved-astrometry + SB2 core on a legacy GJ 765.2 data
+set. This module supports V6b: comparison against published Gaia DR3 NSS
+catalogue solutions and DR3 IPD diagnostics. V7 remains the future direct
+measurement-level test using released Gaia epoch astrometry/images.
 
 DR3 publishes astrometric orbits as **Thiele-Innes** constants
 ``(a_thiele_innes, b_thiele_innes, f_thiele_innes, g_thiele_innes)`` rather
 than as Campbell elements. This module supplies the conversion in the same
-North/East convention the rest of the project uses, together with the archive
-query and a loader, so the comparison can be run as soon as the catalogue is
-reachable.
+North/East convention the rest of the project uses, together with a broad
+archive query and loader. Target-specific GJ 765.2 machinery is in
+``dr3_target.py`` and ``scripts/validate_gl765_dr3.py``.
 
 Convention, matching `tests/test_orbit_conventions.py`:
 
@@ -21,7 +22,8 @@ through East, and the *relative* argument of periastron.
 
 **Downloading is deliberately not automated here.** The Gaia archive is not
 reachable from every environment, so `scripts/validate_against_dr3.py` reads a
-CSV that has already been exported. The query to produce it is below.
+CSV that has already been exported. The query to produce a broad candidate
+sample is below.
 """
 
 from __future__ import annotations
