@@ -1,0 +1,53 @@
+SELECT
+    hip.angular_distance AS separation_arcsec,
+    hip.number_of_neighbours AS hipparcos2_number_of_neighbours,
+    hip.gaia_astrometric_params AS hipparcos2_gaia_astrometric_params,
+    src.source_id,
+    src.designation,
+    src.ra,
+    src.dec,
+    src.parallax,
+    src.parallax_error,
+    src.pmra,
+    src.pmra_error,
+    src.pmdec,
+    src.pmdec_error,
+    src.phot_g_mean_mag,
+    src.astrometric_n_obs_al,
+    src.astrometric_n_good_obs_al,
+    src.astrometric_gof_al,
+    src.astrometric_chi2_al,
+    src.astrometric_excess_noise,
+    src.visibility_periods_used,
+    src.ruwe,
+    src.ipd_frac_multi_peak,
+    src.ipd_gof_harmonic_amplitude,
+    src.ipd_gof_harmonic_phase,
+    src.scan_direction_strength_k1,
+    src.scan_direction_strength_k2,
+    src.scan_direction_strength_k3,
+    src.scan_direction_strength_k4,
+    src.scan_direction_mean_k1,
+    src.scan_direction_mean_k2,
+    src.scan_direction_mean_k3,
+    src.scan_direction_mean_k4,
+    src.duplicated_source,
+    src.non_single_star,
+    src.has_epoch_rv,
+    nss.nss_solution_type,
+    nss.period AS nss_period_days,
+    nss.eccentricity AS nss_eccentricity,
+    nss.t_periastron AS nss_t_periastron,
+    nss.parallax AS nss_parallax_mas,
+    nss.goodness_of_fit AS nss_goodness_of_fit,
+    nss.a_thiele_innes,
+    nss.b_thiele_innes,
+    nss.f_thiele_innes,
+    nss.g_thiele_innes
+FROM gaiadr3.hipparcos2_best_neighbour AS hip
+JOIN gaiadr3.gaia_source AS src
+    ON hip.source_id = src.source_id
+LEFT OUTER JOIN gaiadr3.nss_two_body_orbit AS nss
+    ON src.source_id = nss.source_id
+WHERE hip.original_ext_source_id = 96656
+ORDER BY nss.nss_solution_type ASC
