@@ -13,11 +13,13 @@
 \newcommand{\dchi}{\Delta\chi^2}
 \newcommand{\betag}{\beta_G}
 \newcommand{\asig}{a_{\rm rel,ang}/\sigma}
+\newcommand{\aalpha}{a_{\rm rel,ang}/\alpha}
+\newcommand{\psfelong}{\beta_{\rm PSF}/\alpha}
 
 \begin{document}
 
 \title{Resolution-Aware Joint Orbit Inference for Marginally Resolved Gaia Binaries:
-Synthetic Full-Sky Tests of the Photocentre Approximation}
+Dynamical-Mass Bias and Required Response Fidelity}
 
 \volnopage{Vol.0 (202x) No.0, 000--000}
 \setcounter{page}{1}
@@ -30,40 +32,16 @@ University of Sharjah, Sharjah, United Arab Emirates\\
 {\small Received 202x month day; accepted 202x month day}}
 
 \abstract{
-The usual astrometric treatment of an unresolved luminous binary assigns each epoch to a
-flux-weighted photocentre.  In the marginal-resolution regime, however, the measured one-dimensional
-location can depend nonlinearly on projected component separation, light ratio, and Gaia scan angle.
-We develop and validate a target-level joint orbit prototype that combines resolved relative astrometry,
-both radial-velocity curves of an SB2, and Gaia-like along-scan measurements with either an ordinary
-photocentre response or a resolution-aware response.  The latter is intentionally implemented as a
-two-equal-width-Gaussian research surrogate whose measured coordinate is the single global profile
-maximum; its width $\sigma$ is not identified with Gaia's calibrated LSF width.
-We map the model discrepancy with paired synthetic injection/recovery experiments.
-A full-sky nominal-DR4 experiment uses 46 ecliptic sky positions, five light fractions, five values of
-$\asig$, ten noise realizations, and two fitted measurement models, for 23\,000 fit records.
-All fits are successful and remain in the single-peak domain.  At every one of the 46 positions and all
-five tested separations, the largest median
-$\dchi=\chi^2_{\rm photo}-\chi^2_{\rm RAA}$ occurs at $\betag=0.25$.
-For $\betag=0.25$ and $\asig=1$, the sky distribution of median $\dchi$ spans
-834--8767 with a median of 2195.
-A matched-transit-count control fixes every position to $N=53$ while preserving mission-spanning
-subsets of the original schedules and the corresponding synthetic noise draws.  Across 11\,040 control
-fits, the sky-median $\dchi$ falls to 1181.  The native correlation of $\dchi$ with transit count,
-$\rho_{\rm S}=0.771$, becomes $-0.003$ after matching $N$.
-The ratio $\dchi_{53}/\dchi_{\rm native}$ correlates strongly with the retained-transit fraction
-$53/N_{\rm native}$ ($\rho_{\rm S}=0.923$), and their median ratio is 1.014, while residual dependence
-on scan-angle geometry remains.
-These results demonstrate a well-defined single-peak regime in which the photocentre observation model
-can be strongly misspecified in the surrogate experiment, while also showing that the strength of the
-discrepancy is controlled predominantly by observation count and secondarily by scan geometry.
-The numerical transition values are properties of the surrogate experiment and must not be interpreted
-as Gaia angular-resolution thresholds.
+Treating a luminous unresolved binary as a flux-weighted photocentre is convenient, but in the marginal-resolution regime the measured one-dimensional position can depend nonlinearly on component separation, light ratio, and scan orientation. We investigate how this measurement-model choice propagates into joint dynamical inference when Gaia-like along-scan astrometry is combined with independent resolved relative astrometry and both radial-velocity curves of an SB2. Three response models are compared on identical synthetic realizations: $M_0$, an ordinary photocentre; $M_1$, the published equal-width one-dimensional blended-profile response; and $M_2$, a finite-elongation orientation-dependent Gaussian response based on the effective-width treatment of \citet{Penoyre2026}. The response widths are research-surrogate parameters, not calibrated Gaia PLSF values.
+A 720-fit response-fidelity grid spans three Gaia-band light fractions, four values of $\aalpha$, two elongations $\psfelong$, ten noise realizations, and all three fitted models. At $\betag=0.25$, $\aalpha=1$, and $\psfelong=1.5$, the photocentre model biases the median inferred masses by $-1.26\%$ and $-1.28\%$, the parallax by $+0.93\%$, and the light fraction by $-15.34\%$. The equal-width response reduces the corresponding median mass biases to $-0.03\%$ and $-0.09\%$, although it remains measurably misspecified relative to $M_2$ (${\rm median}\,[\chi^2_{M_1}-\chi^2_{M_2}]=129.3$) and retains a $-3.30\%$ light-fraction bias.
+A 270-fit control then weakens only the independent resolved-astrometry/SB2 precision. The photocentre mass biases grow from about $1.2\%$ under strong external constraints to $5$--$6\%$ under weak constraints, while the equal-width response develops residual mass biases of about $1$--$1.4\%$. The correctly specified $M_2$ solution remains centered on the injected parameters, with increasing random scatter as the external information weakens. A separate 100-seed matched-$M_2$ control gives a median parallax bias of only $+0.017\%$ with a 16--84 percentile range of $-0.127\%$ to $+0.178\%$.
+The response fidelity required for accurate dynamical masses therefore depends on the strength of independent orbital constraints. Light ratio is more sensitive to response misspecification than the component masses in strongly constrained visual-SB2 systems. Supporting full-sky baseline experiments further show that the strength of model mismatch depends strongly on the number and geometry of Gaia-like scans.
 \keywords{astrometry --- binaries: visual --- binaries: spectroscopic --- methods: numerical ---
 methods: statistical --- space vehicles: instruments}
 }
 
 \authorrunning{M. H. Talafha}
-\titlerunning{Resolution-Aware Joint Orbit Inference}
+\titlerunning{Response Fidelity in Gaia Binary Orbit Inference}
 \maketitle
 
 \input{manuscript/introduction}
