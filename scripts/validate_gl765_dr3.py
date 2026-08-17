@@ -3,11 +3,16 @@
 
 Usage
 -----
-Print the target-specific ADQL query::
+Print the preferred target-specific ADQL query, identified through Gaia DR3's
+Hipparcos-2 best-neighbour crossmatch::
 
     python scripts/validate_gl765_dr3.py --show-query
 
-Run the Gaia Archive query, export its result as CSV, then analyse it::
+A coordinate-cone fallback can also be printed for diagnostics::
+
+    python scripts/validate_gl765_dr3.py --show-cone-query
+
+Run the preferred Gaia Archive query, export its result as CSV, then analyse it::
 
     python scripts/validate_gl765_dr3.py gj765_dr3.csv \
         --output results/dr3_validation/gj765_dr3_summary.json
@@ -28,6 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from raa_orbit_model.dr3_target import (  # noqa: E402
     GJ765_ORBITAL_PARALLAX_MAS,
     GJ765_PERIOD_YR,
+    gj765_cone_query,
     gj765_target_query,
     load_target_export,
     summarize_target_rows,
@@ -44,20 +50,24 @@ def main() -> None:
         description="Catalogue-level Gaia DR3 validation for GJ 765.2 / HIP 96656"
     )
     parser.add_argument("csv", nargs="?", help="CSV exported from the Gaia Archive target query")
-    parser.add_argument("--show-query", action="store_true", help="print exact target ADQL and exit")
+    parser.add_argument("--show-query", action="store_true", help="print preferred HIP2-crossmatch ADQL and exit")
+    parser.add_argument("--show-cone-query", action="store_true", help="print coordinate-cone fallback ADQL and exit")
     parser.add_argument(
         "--output",
         default="results/dr3_validation/gj765_dr3_summary.json",
         help="JSON summary path",
     )
     parser.add_argument(
-        "--radius-arcsec", type=float, default=5.0,
-        help="target cone radius used by --show-query",
+        "--radius-arcsec", type=float, default=10.0,
+        help="radius for --show-cone-query only",
     )
     args = parser.parse_args()
 
     if args.show_query:
-        print(gj765_target_query(args.radius_arcsec))
+        print(gj765_target_query())
+        return
+    if args.show_cone_query:
+        print(gj765_cone_query(args.radius_arcsec))
         return
     if not args.csv:
         parser.error("provide a Gaia Archive CSV or use --show-query")
@@ -68,7 +78,11 @@ def main() -> None:
 
     print("GJ 765.2 / HIP 96656 — Gaia DR3 catalogue-level validation")
     print(f"source_id: {summary.source_id}")
-    print(f"coordinate separation: {fmt(summary.separation_arcsec, 4)} arcsec")
+    print(f"HIP2 crossmatch angular distance: {fmt(summary.separation_arcsec, 4)} arcsec")
+    if summary.hipparcos2_number_of_neighbours is not None:
+        print(f"HIP2 Gaia neighbours: {summary.hipparcos2_number_of_neighbours}")
+    if summary.hipparcos2_gaia_astrometric_params is not None:
+        print(f"Gaia astrometric parameters used in HIP2 match: {summary.hipparcos2_gaia_astrometric_params}")
     print(f"DR3 parallax: {fmt(summary.parallax_mas)} ± {fmt(summary.parallax_error_mas)} mas")
     if math.isfinite(summary.parallax_mas) and math.isfinite(summary.parallax_error_mas):
         delta = summary.parallax_mas - GJ765_ORBITAL_PARALLAX_MAS
