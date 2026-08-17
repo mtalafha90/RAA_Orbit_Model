@@ -1,68 +1,62 @@
-# Real-data validation: status of V6 and V7
+# Real-data validation status
 
-`docs/methodology.md` section 11 defines a validation ladder. Steps V0 to V5 are synthetic and are exercised by the test suite. The final two steps involve real Gaia measurements. **Neither has been executed.** This note records exactly why, and what has been built so that each can be run without overstating current validation.
+The validation ladder now has two distinct real-data stages.
 
-## V6 — DR3 catalogue consistency
+## V6a — real resolved-astrometry + SB2 core check: executed
 
-**Status: blocked on data access in the development environment, not on implementation.**
+A legacy measurement subset for **GJ 765.2 = HD 186922 = HIP 96656** has been fitted with the physical Newtonian two-body core, resolved relative astrometry, and both SB2 velocity curves. The input contains 11 visual/speckle relative positions and 44 paired CORAVEL epochs for each RV component, but no Gaia epoch astrometry.
 
-The Gaia archive was unreachable from the environment in which the validation harness was developed, so no DR3 row was retrieved there and **no claim of consistency with real Gaia data is made anywhere in this project.**
+The joint fit uses 110 scalar constraints and 10 free physical parameters and gives
 
-What exists instead is the machinery to run V6 as soon as a DR3 export is available:
+- chi2 = 104.629
+- dof = 100
+- reduced chi2 = 1.046
+- P = 11.7284 +/- 0.0732 yr
+- e = 0.24888 +/- 0.01005
+- i = 81.834 +/- 1.371 deg
+- ascending-node branch Omega = 289.07 +/- 3.27 deg
+- relative-orbit omega = 251.79 +/- 2.25 deg
+- total mass = 1.5897 Msun
+- orbital parallax = 35.44 +/- 2.24 mas
 
-- `src/raa_orbit_model/dr3_validation.py`
-  - `NSS_ASTROMETRIC_ORBIT_QUERY` — ADQL selecting DR3 astrometric orbits, joined to `gaia_source` for duplicity diagnostics.
-  - `thiele_innes_to_campbell` / `campbell_to_thiele_innes` — DR3 publishes astrometric orbits as Thiele-Innes constants, not Campbell elements, so this conversion is required before any comparison. It is written in the same North/East convention asserted in `tests/test_orbit_conventions.py`.
-  - `campbell_table`, `marginally_resolved_candidates` — conversion and selection helpers.
-- `scripts/validate_against_dr3.py` — run `--show-query`, export from the archive, then pass the CSV.
-- `tests/test_dr3_validation.py` — offline regression tests.
+The later combined interferometric/spectroscopic solution of Balega et al. (2007, A&A 464, 635; DOI 10.1051/0004-6361:20066224) gives P = 11.919 yr, e = 0.240, i = 80.2 deg, Omega = 293.0 deg, omega = 250.0 deg, masses 0.831 and 0.763 Msun, and orbital parallax 31.0 +/- 0.5 mas. The legacy-subset total mass differs from the later total mass (1.594 Msun) by about 0.27%.
 
-The conversion is verified two ways without network access: it round-trips against itself for a range of geometries, and it reproduces the ellipse drawn by this project's own orbit model to numerical precision.
+This is a **consistency/implementation check**, not an independent astrophysical determination, because the legacy CORAVEL data overlap with those used in the later combined solution.
 
-### Why these DR3 columns
+The legacy file header contains parallax = 54.27 mas. When that value is held fixed, the fit degrades to chi2 = 168.94 (reduced chi2 = 1.673 for 101 dof). Holding the later orbital parallax 31.0 mas fixed gives chi2 = 108.70 (reduced chi2 = 1.076). The joint resolved-astrometry/SB2 data therefore force the physical scale away from the inconsistent legacy header value.
 
-A catalogue-level test cannot see the along-scan measurements, so it cannot test the measurement model directly. It can only test diagnostics that are qualitatively associated with partially resolved structure.
+### Scope
 
-- `ipd_frac_multi_peak` is the percentage of successful-IPD windows in which the Gaia IPD processing identified more than one peak. The surrogate also tracks whether its simplified blended profile is single- or multi-peaked, so the two quantities are conceptually related. They are **not equivalent**: the Gaia statistic additionally depends on the real PLSF, detection thresholds, windowing, gating, background, calibration, and IPD processing.
-- `ipd_gof_harmonic_amplitude` measures scan-angle-dependent structure in the IPD goodness of fit. A close pair can generate such angular dependence, but this statistic is not a direct likelihood residual of the RAA surrogate.
+V6a validates the non-Gaia physical orbit engine on a real stellar binary. It does **not** validate the marginal-resolution Gaia response.
 
-These columns therefore provide possible falsification/selection diagnostics, not a direct calibration target.
+## V6b — DR3 catalogue consistency: still limited
 
-### Known limitation of this step
+The existing `dr3_validation.py` machinery remains useful for catalogue-level consistency and candidate selection, including Thiele-Innes/Campbell conversion and IPD diagnostics. A catalogue-level DR3 test cannot directly validate the close-pair along-scan response because DR3 does not publish the stellar epoch astrometry needed by the likelihood, and partially resolved doubles were filtered upstream of the DR3 astrometric-binary processing.
 
-Halbwachs et al. (2023) state that partially resolved doubles were filtered upstream of the DR3 astrometric-binary processing. The DR3 orbit catalogue is therefore depleted in exactly the regime this project targets, and a null result in V6 would partly reflect selection. Any V6 analysis must account for that fact and should distinguish the all-source IPD diagnostics from the much more selected NSS orbital-solution sample.
+## V7 — Gaia DR4 epoch/image validation: pending public release
 
-## V7 — DR4 epoch and image validation
+The official Gaia DR4 expected-content page lists the products required for direct measurement-level validation:
 
-**Status: not possible yet. Gaia DR4 has not been released.**
+- `epoch_astrometry`: individual astrometric measurements for all sources treated in the main astrometric processing (DL2)
+- `epoch_image`: pre-processed, sky-projected individual CCD sample values for those sources (DL1)
+- `rvs_epoch_data_double`: FoV-transit-level information for double-lined RVS transits (DL2)
 
-The official Gaia release scenario currently places DR4 in approximately 2026 (the release-scenario page states not before mid-2026). The exact release date should not be hard-coded here until ESA publishes it.
+Official source: https://www.cosmos.esa.int/web/gaia/dr4
 
-The official Gaia DR4 **expected-content** page already provides provisional archive product names. Of direct relevance to this project are:
+The same page states that DR4 is based on 66 months of observations from 2014-07-25 10:30 UTC to 2020-01-20 22:00 UTC, with reference epoch J2017.5, and that the expected release volume is about 500 TB. The content is explicitly described as under development and may change before release.
 
-- `epoch_astrometry` — individual astrometric measurements for sources in the main astrometric processing;
-- `epoch_image` — preprocessed, sky-projected individual CCD sample values;
-- `rvs_epoch_data_double` — FoV-transit-level information for double-lined RVS transits;
-- planned non-single-star, mass, and multiplicity products.
+The DR4 overview still labels the release **Coming up**. The official release-scenario page currently states DR4 is **not before mid 2026**; no firm public release date is stated there.
 
-These names are therefore not guesses. However, the same official page states that the content is under development and changes can be expected, while the detailed DR4 processing documentation and final data model are still forthcoming. Code that ingests DR4 should consequently isolate these interfaces behind adapters and verify them against the released schema rather than assuming today's expected table layout is final.
+## GJ 765.2 as a DR4 feasibility target
 
-This creates the largest remaining literature/implementation blind spot. The public DR4 material reviewed for this project does **not establish** whether the eventual DPAC NSS orbit likelihood internally uses a physical marginal-resolution PLSF/image response for close binaries. Until the processing papers and documentation are available, the manuscript should state neither that DPAC has such an inference nor that it does not.
+Using the Balega et al. (2007) orbit over the official 66-month DR4 interval gives a sky-projected component separation ranging from about 24.7 to 199.1 mas. Using the published V-band component magnitude difference (0.65 mag) only as a temporary light-fraction proxy gives beta_V = 0.3547.
 
-### Why `epoch_image` matters beyond scalar epoch astrometry
+For the current equal-width research baseline alpha = 50 mas, the exact surrogate mode-splitting threshold is |d_AL| about 128.5 mas at that light fraction. On a uniform time/scan-angle envelope over the DR4 interval:
 
-The current single-coordinate surrogate is intentionally invalid once the blended profile becomes genuinely multi-peaked. If DR4 `epoch_image` provides the expected CCD sample information at useful fidelity, an image/sample-domain likelihood becomes the natural extension:
+- 24.1% of time-angle combinations are multi-peak in the surrogate
+- for 58.0% of the interval, at least some scan orientations can be multi-peak
+- at the most favorable epoch, 55.3% of scan orientations cross the threshold
 
-`orbit -> component positions + fluxes -> PLSF/profile samples -> CCD data`.
+These are **not Gaia transit statistics** and must not be presented as such. The real test requires the released DR4 epoch products. The 50 mas width is a research surrogate, not a calibrated Gaia PLSF resolution.
 
-That would avoid assigning one astrometric coordinate to a transit whose brightness profile has multiple competing maxima. It is therefore a scientifically stronger long-term endpoint than extending the present one-coordinate surrogate into the resolved regime.
-
-The DR4 instrument reference has also changed. Rowell et al. (2026, A&A 708, A174) describe the PLSF model deployed in DR4 processing, including drift-scan effects and calibrated dependences on source colour and focal-plane position. Any measurement-level implementation should be checked against released calibration products rather than treating a fixed Gaussian width as the Gaia instrument model.
-
-## What can be claimed today
-
-Every headline quantitative result in the manuscript is synthetic. The equal-width surrogate reproduces the public `gaiamock` blended response over their common validity domain, but the deeper source audit also shows that `gaiamock` already contains a response-aware stellar astrometry-plus-primary-RV **forward predictor**. The measurement response and that forward combination are therefore not novelty claims.
-
-Likewise, Liu et al. (2024) already used a partially resolved Gaia response inside orbital inference for the binary asteroid (4337) Arecibo. What remains under investigation is the narrower stellar inverse problem and, more importantly, the response-fidelity question: whether marginal-resolution model error biases individual stellar masses/parallax and how accurate the response must be for calibrated inference.
-
-Neither the `gaiamock` benchmark nor synthetic recovery is a test against real Gaia measurements. The project should continue to say this plainly until V6 and, ultimately, V7 are actually executed.
+If an observed transit is genuinely multi-peaked, `epoch_image` is the scientifically preferred endpoint because the likelihood can be written in the sample/image domain instead of assigning an artificial unique astrometric coordinate.
