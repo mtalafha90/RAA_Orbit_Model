@@ -15,18 +15,30 @@ from .gaia import (
     photocentre_along_scan,
     project_along_scan,
 )
+from .penoyre import (
+    penoyre_oriented_gaussian_peak,
+    penoyre_oriented_gaussian_response,
+)
 
 
 @dataclass(frozen=True)
 class GaiaResponseConfig:
-    mode: str = "photocentre"  # "photocentre" or "blended_gaussian_peak"
+    mode: str = "photocentre"
+    # For ``blended_gaussian_peak`` this is the 1-D research width.  For
+    # ``penoyre_gaussian_peak`` it is Penoyre's idealised along-scan/narrow-axis
+    # width alpha.  It is never a calibrated Gaia PLSF width in this project.
     sigma_mas: float | None = None
     allow_multi_peak_continuation: bool = False
     # Optional independent width for the secondary component. ``None`` keeps the
-    # equal-width surrogate used for all previously frozen results. Setting it
-    # moves the response outside that family, which is what makes controlled
-    # profile-shape misspecification experiments possible.
+    # equal-width 1-D surrogate used for all previously frozen results. Setting
+    # it moves the response outside that family for controlled profile-shape
+    # misspecification experiments.
     sigma_secondary_mas: float | None = None
+    # Across-scan/long-axis width beta of the idealised elongated Gaussian in
+    # ``penoyre_gaussian_peak`` mode.  beta=+inf is the 1-D Lindegren/gaiamock
+    # limit; finite values introduce orientation dependence.  This is a research
+    # parameter, not a Gaia calibration value.
+    sigma_ac_mas: float | None = None
 
 
 @dataclass(frozen=True)
@@ -101,7 +113,7 @@ def predict_gaia_orbital_response(
     """Predict Gaia-like AL response while preserving single/multi-peak validity.
 
     For the photocentre model every epoch belongs to the single-coordinate
-    channel by construction. For the blended-Gaussian research surrogate,
+    channel by construction. For either blended-Gaussian research surrogate,
     multi-peak epochs are returned with NaN values and a false validity mask;
     callers must not reinterpret those epochs as unique centroids.
     """
@@ -132,6 +144,29 @@ def predict_gaia_orbital_response(
             critical_separation_sigma=float(result.critical_separation_sigma),
         )
 
+    if response.mode == "penoyre_gaussian_peak":
+        if response.sigma_mas is None:
+            raise ValueError("sigma_mas (alpha) is required for penoyre_gaussian_peak mode")
+        if response.sigma_ac_mas is None:
+            raise ValueError("sigma_ac_mas (beta) is required for penoyre_gaussian_peak mode")
+        rel = relative_astrometry_mas(times_yr, params)
+        result = penoyre_oriented_gaussian_response(
+            rel[:, 0],
+            rel[:, 1],
+            scan_angle_deg,
+            B,
+            params.beta_g,
+            response.sigma_mas,
+            response.sigma_ac_mas,
+        )
+        return GaiaALPrediction(
+            values_mas=np.asarray(result.al_mas, dtype=float),
+            single_peak_mask=np.asarray(result.single_peak_mask, dtype=bool),
+            n_peaks=np.asarray(result.n_peaks, dtype=int),
+            projected_separation_mas=np.abs(d_al),
+            critical_separation_sigma=float(result.critical_separation_sigma),
+        )
+
     raise ValueError(f"unknown Gaia response mode: {response.mode}")
 
 
@@ -142,7 +177,7 @@ def predict_gaia_orbital_al(
     response: GaiaResponseConfig = GaiaResponseConfig(),
     astrometry: AbsoluteAstrometryConfig | None = None,
 ):
-    """Predict a unique AL coordinate in the surrogate single-peak domain.
+    """Predict a unique AL coordinate in a surrogate single-peak domain.
 
     ``allow_multi_peak_continuation`` exists only so the deterministic
     least-squares prototype can traverse parameter space continuously. Such an
@@ -172,5 +207,21 @@ def predict_gaia_orbital_al(
         return blended_gaussian_peak(
             d_al, B, params.beta_g, response.sigma_mas,
             sigma_secondary_mas=response.sigma_secondary_mas,
+        ) + absolute
+    if response.mode == "penoyre_gaussian_peak":
+        if response.sigma_mas is None:
+            raise ValueError("sigma_mas (alpha) is required for penoyre_gaussian_peak mode")
+        if response.sigma_ac_mas is None:
+            raise ValueError("sigma_ac_mas (beta) is required for penoyre_gaussian_peak mode")
+        rel = relative_astrometry_mas(times_yr, params)
+        return penoyre_oriented_gaussian_peak(
+            rel[:, 0],
+            rel[:, 1],
+            scan_angle_deg,
+            B,
+            params.beta_g,
+            response.sigma_mas,
+            response.sigma_ac_mas,
+            allow_multi_peak_continuation=response.allow_multi_peak_continuation,
         ) + absolute
     raise ValueError(f"unknown Gaia response mode: {response.mode}")

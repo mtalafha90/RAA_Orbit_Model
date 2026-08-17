@@ -12,13 +12,15 @@ This module removes that advantage in two controlled ways.
    the injected width, or is fitted from the data rather than asserted.
 2. **Shape misspecification.** The data are injected with two Gaussians of
    *different* widths, which is outside the equal-width family the fit uses.
-   Physically this stands in for the two components having different colours
-   and therefore different effective line-spread widths.
+   This is a generic controlled proxy for unmodelled component-dependent or
+   profile-shape differences. It is not a calibrated Gaia colour-to-PLSF model.
 
 Under (2) both hypotheses are wrong, which is the situation that will hold
 against real Gaia data. A resolution-aware model that only wins when it is
-exactly correct has not demonstrated anything useful, so this is the decisive
-control for the scientific claim.
+exactly correct has not demonstrated anything useful, so this is an important
+control. The Penoyre-style orientation-dependent hierarchy in
+``response_fidelity.py`` is now the more literature-grounded response-fidelity
+test.
 """
 
 from __future__ import annotations
@@ -93,8 +95,8 @@ def compare_under_misspecification(
 
     photo = fit_joint(data, initial, GaiaResponseConfig("photocentre"))
 
-    # The RAA hypothesis always uses the equal-width family, which is the model
-    # the manuscript actually advocates. Only the injection leaves that family.
+    # The RAA hypothesis here uses the equal-width family. Only the injection
+    # leaves that family; the newer orientation-dependent hierarchy is separate.
     raa_response = GaiaResponseConfig(
         "blended_gaussian_peak",
         float(fit_width_ratio) * sigma_response_mas,
@@ -145,7 +147,7 @@ def shape_misspecification_scan(
     retain_multi_peak: bool = False,
     **kwargs,
 ) -> list[dict]:
-    """Scan the RAA advantage against injected profile-shape error."""
+    """Scan the equal-width RAA fit against injected profile-shape error."""
     rows: list[dict] = []
     for beta in beta_values:
         if not (0.0 <= beta <= 0.5):
