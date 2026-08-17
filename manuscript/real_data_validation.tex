@@ -1,4 +1,4 @@
-\section{Real-Binary Validation and DR4 Target Feasibility}
+\section{Real-Binary Validation and Gaia DR3/DR4 Tests}
 \label{sect:realdata}
 
 \subsection{Legacy GJ~765.2 Visual--SB2 Data}
@@ -47,15 +47,39 @@ The total mass differs from the later combined value by only $0.27\%$. The orbit
 
 This experiment validates only the Newtonian/SB2 plus resolved-relative-astrometry core on a real stellar system. It does not validate the marginal-resolution Gaia response, because no Gaia epoch along-scan coordinates or images are included.
 
+\subsection{Gaia DR3 as an Intermediate Catalogue-Level Test}
+\label{sect:dr3bridge}
+
+Gaia DR3 cannot provide the general source-level epoch along-scan astrometry needed to refit the response hierarchy $\mzero$--$\mtwo$ directly, but it does provide two useful catalogue-level diagnostics. First, the DR3 \texttt{gaia\_source} table publishes image-parameter-determination (IPD) quantities that retain information about partial resolution. The field \texttt{ipd\_frac\_multi\_peak} is the percentage of successful IPD windows in which more than one peak was identified, whereas \texttt{ipd\_gof\_harmonic\_amplitude} measures the amplitude of scan-angle-dependent variation in the IPD goodness of fit.\footnote{Gaia DR3 \texttt{gaia\_source} data model: \url{https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_main_source_catalogue/ssec_dm_gaia_source.html}, accessed 2026 August 17.} The accompanying harmonic phase is defined modulo $180^\circ$. The Gaia documentation notes that for binaries with separation $\lesssim0.1$~arcsec the phase can trace the binary position angle when the profile remains effectively single-peaked, while more clearly resolved doubles can instead have a large multi-peak fraction. These quantities are therefore relevant empirical diagnostics of the same scan-orientation dependence explored by the resolution-aware surrogate, although they are not direct measurements of its Gaussian mode-splitting threshold.
+
+Second, the DR3 \texttt{nss\_two\_body\_orbit} table publishes non-single-star orbital solutions. For astrometric orbital models, the fitted Thiele--Innes constants $A$, $B$, $F$, and $G$ describe the orbit of the photocentre and can be transformed to the Campbell elements $a_0$, $i$, $\omega$, and $\Omega$.\footnote{Gaia DR3 \texttt{nss\_two\_body\_orbit} data model: \url{https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_non--single_stars_tables/ssec_dm_nss_two_body_orbit.html}, accessed 2026 August 17.} If GJ~765.2 has a usable astrometric NSS solution, this provides a direct catalogue-level comparison between the Gaia photocentre orbit and the independently constrained visual--SB2 orbit.
+
+For that comparison, the ordinary unresolved-photocentre model predicts
+\begin{equation}
+ a_{\rm phot}=|\beta-B|a_{\rm rel},\qquad
+ B=\frac{M_2}{M_1+M_2}.
+\end{equation}
+Using the published GJ~765.2 masses gives $B=0.47867$. The published component $V$-magnitude difference, $\Delta V=0.65$~mag, gives the temporary optical light-fraction proxy
+\begin{equation}
+\beta_V=\frac{1}{1+10^{0.4\Delta V}}=0.35465.
+\end{equation}
+With $a_{\rm rel}=189$~mas, the corresponding $\mzero$ benchmark is
+\begin{equation}
+ a_{\rm phot,V}=|0.35465-0.47867|\times189
+ =23.44~{\rm mas}.
+\label{eq:gl765_phot_benchmark}
+\end{equation}
+The subscript $V$ is essential: this is not a measured Gaia $G$-band light fraction and is used only to define a transparent external benchmark.
+
+To avoid a potentially unsafe coordinate-only association for this high-proper-motion binary, the target-specific DR3 query implemented with the analysis code identifies HIP~96656 through the Gaia Hipparcos-2 best-neighbour cross-match and then joins the matched source to \texttt{gaia\_source} and \texttt{nss\_two\_body\_orbit}. The cross-match table links each Hipparcos-2 object to its best Gaia neighbour and records whether the Gaia position was propagated with the available astrometric parameters.\footnote{Gaia DR3 archive table inventory includes \texttt{hipparcos2\_best\_neighbour}; see \url{https://gea.esac.esa.int/archive/documentation/GDR3/}.} The query, parser, Thiele--Innes conversion, and regression tests are versioned with the code. At the time of this manuscript update, no target-specific DR3 numerical values are included in the scientific results because a validated catalogue export for HIP~96656 has not yet been ingested. Accordingly, DR3 is treated here as an intermediate catalogue/IPD validation layer rather than as evidence for or against any one response model.
+
+The intended DR3 comparison is therefore deliberately limited. A recovered Gaia astrometric NSS orbit can be compared with the externally known $P$, $e$, $i$, and with the $23.44$~mas ordinary-photocentre scale in Equation~(\ref{eq:gl765_phot_benchmark}); RUWE, excess-noise and IPD diagnostics can test whether Gaia reports the expected symptoms of scan-dependent source structure. None of these quantities permits a likelihood-level comparison of $\mzero$, $\mone$, and $\mtwo$ because the individual stellar AL measurements used by the DR3 astrometric solution are not generally available.
+
 \subsection{Official DR4 Products and GJ~765.2 as a Target}
 
 The official Gaia DR4 expected-content page lists the two products most directly relevant to the next validation step: \texttt{epoch\_astrometry}, containing individual astrometric measurements for sources treated in the main astrometric processing, and \texttt{epoch\_image}, containing pre-processed sky-projected CCD sample values. It also lists \texttt{rvs\_epoch\_data\_double} for double-lined RVS transits.\footnote{Gaia DR4 expected content: \url{https://www.cosmos.esa.int/web/gaia/dr4}, accessed 2026 August 17.} The release is based on 66 months of observations, from 2014 July 25 10:30 UTC to 2020 January 20 22:00 UTC, with reference epoch J2017.5; the expected total release volume is approximately 500~TB, dominated by lower-level products. The same official page states that the content remains under development and can change before release. The DR4 overview still labels the release as ``Coming up'' at the time of writing,\footnote{Gaia DR4 overview: \url{https://www.cosmos.esa.int/web/gaia/data-release-4}, accessed 2026 August 17.} while the official release-scenario page gives the target only as ``not before mid 2026''.\footnote{Gaia data-release scenario: \url{https://www.cosmos.esa.int/web/gaia/release}, accessed 2026 August 17.}
 
-GJ~765.2 is a useful prospective DR4 target because its published orbit naturally crosses a wide angular-separation range during the 66-month DR4 interval. Propagating the \citet{Balega2007} orbit gives a sky-projected component separation from approximately 24.7 to 199.1~mas over that interval. The published absolute $V$ magnitudes differ by 0.65~mag, corresponding to a temporary $V$-band light-fraction proxy
-\begin{equation}
-\beta_V=\frac{1}{1+10^{0.4\Delta V}}=0.3547.
-\end{equation}
-This is not assumed to equal the Gaia $G$-band fraction; it is used only for a pre-release feasibility calculation.
+GJ~765.2 is a useful prospective DR4 target because its published orbit naturally crosses a wide angular-separation range during the 66-month DR4 interval. Propagating the \citet{Balega2007} orbit gives a sky-projected component separation from approximately 24.7 to 199.1~mas over that interval. The published absolute $V$ magnitudes differ by 0.65~mag, corresponding to the temporary $V$-band light-fraction proxy in Equation~(\ref{eq:gl765_phot_benchmark}). This is not assumed to equal the Gaia $G$-band fraction; it is used only for a pre-release feasibility calculation.
 
 For the current equal-width research baseline $\alpha=50$~mas, the exact equal-width surrogate mode-splitting criterion at $\beta=\beta_V$ gives a critical projected along-scan separation of approximately 128.5~mas. A uniform grid in time and scan orientation over the DR4 interval places 24.1\% of the time--orientation combinations in the surrogate multi-peak regime. For 58.0\% of the interval the instantaneous sky separation is large enough that at least some scan orientations can be multi-peaked; at the most favourable epoch, 55.3\% of possible scan orientations cross the threshold.
 
