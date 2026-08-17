@@ -3,7 +3,7 @@
 
 \subsection{Reference Binary and Noise Model}
 
-The reference system is deliberately fixed so the observation model, not the intrinsic binary population, is the controlled variable. The injected values are listed in Table~\ref{tab:setup}. The parallax is rescaled at each experiment point so that the angular relative semi-major axis produces the requested $\asig$. Each realization contains 24 resolved relative-astrometry epochs, 48 SB2 epochs (with both component velocities), and the position-dependent Gaia schedule. The adopted one-sigma noise levels are 0.20 mas per tangent-plane coordinate, 0.10 km s$^{-1}$ per RV measurement, and 0.10 mas per Gaia-like along-scan measurement.
+The reference system is fixed so the astrometric response and the strength of the independent orbit information can be varied without simultaneously changing the intrinsic binary. The injected orbit is listed in Table~\ref{tab:setup}. The parallax is rescaled at each response-fidelity point so that the angular relative semi-major axis gives the requested $\aalpha$. Unless explicitly changed in the external-information control, each realization contains 24 resolved relative-astrometry epochs, 48 SB2 epochs with both component velocities, and the archived Gaia-like scan schedule. The default one-sigma noise levels are 0.20 mas per tangent-plane coordinate, 0.10 km s$^{-1}$ per component RV measurement, and 0.10 mas per along-scan measurement.
 
 \begin{table}
 \begin{center}
@@ -21,58 +21,82 @@ $\Omega$ & $120^\circ$\\
 $M_1$ & $1.25\,M_\odot$\\
 $M_2$ & $0.85\,M_\odot$\\
 $\gamma$ & 7.0 km s$^{-1}$\\
-Surrogate width $\sigma$ & 50 mas\\
+Research width $\alpha$ & 50 mas\\
 Resolved astrometry & 24 epochs, 0.20 mas\\
 SB2 spectroscopy & 48 epochs, 0.10 km s$^{-1}$\\
 Gaia-like AL noise & 0.10 mas\\
-External-data baseline & 5.4915748 yr\\
+Reference Gaia schedule & RA $120^\circ$, Dec $30^\circ$\\
+Nominal DR4 transits & 87\\
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
 \end{table}
 
-\subsection{Mission-Grounded Scan Schedules}
+\subsection{Mission-Grounded Scan Schedule}
 
-Uniform random scan angles were used only during early code validation and are not used for the final bias experiments. The scientific runs use sky-position-dependent nominal Gaia schedules generated through the public \texttt{gaiascanlaw} interface to GOST-derived nominal scanning-law tables. The exact transit times and directional scan angles are archived to CSV and re-used, rather than re-generated, for comparison experiments. This follows the Gaia scanning geometry described by \citet{GaiaMission2016} and the demonstrated importance of scan direction for close-pair systematics \citep{Holl2023}.
+The response-fidelity and targeted-control experiments use the same archived nominal Gaia schedule at ICRS RA $=120^\circ$, Dec $=30^\circ$, generated through the public \texttt{gaiascanlaw} interface to GOST-derived nominal scanning-law tables. It contains 87 directional transits. Reusing one archived schedule ensures that the response hierarchy is changed while the scan times, scan directions, and Gaia noise prescription remain fixed.
 
-These are nominal mission schedules, not the set of observations that would survive acquisition, downlink, calibration, source matching and quality filtering for a particular real source. Scan angles remain directional over $0$--$360^\circ$; they are not folded modulo $180^\circ$.
+These are nominal mission trajectories, not the exact source-level observations that would survive acquisition, downlink, calibration, source matching, and quality filtering for a real binary. Directional scan angles are retained over $0$--$360^\circ$ rather than folded modulo $180^\circ$.
 
 \subsection{Validation Sequence}
 
-The development and final runs were organized as a sequence of falsifiable checks. First, orbital identities were tested, including Kepler's equation, the mass--RV amplitude relation, barycentric momentum balance, the North-through-East definition of $\Omega$, the $\omega_{\rm rel}=\omega_1+\pi$ conversion, and a finite-difference check of the relative line-of-sight velocity. This convention audit was necessary because internally self-consistent injection/recovery alone can hide a $180^\circ$ periastron or East/North labeling error.
+Before the response-fidelity experiments, the code was tested against orbital identities, the mass--RV-amplitude relation, barycentric momentum balance, the North-through-East definition of $\Omega$, the $\omega_{\rm rel}=\omega_1+\pi$ conversion, and a finite-difference check of relative line-of-sight velocity. The equal-width $\mone$ implementation was benchmarked directly against the published \texttt{gaiamock} response over the common single-peak domain.
 
-Second, the Gaia surrogate was tested in the unresolved photocentre and bright-component limits. Third, Equation~(\ref{eq:scrit}) was implemented as an explicit validity boundary, so multi-peak profiles cannot be interpreted as a single astrometric coordinate. Finally, all mission-grounded transition experiments were repeated after the orbit-convention correction. Pre-audit numerical transition values are therefore treated as development results and are not used below.
+For $\mtwo$, regression tests verify Equation~(\ref{eq:gamma}) on the principal axes, its $\pi$ periodicity, orientation-dependent mode classification, and exact recovery of the existing $\mone$ implementation as $\beta_{\rm PSF}\rightarrow\infty$. Multi-peak states are excluded from scientific single-coordinate fits. All quantitative experiments reported below passed the final single-peak validity check.
 
-\subsection{Full-Sky Native-Schedule Experiment}
+\subsection{Response-Fidelity Grid}
 
-The final native-schedule grid samples J2000 barycentric-mean ecliptic latitudes
+The central experiment injects $\mtwo$ and fits the \emph{same} realization independently with $\mzero$, $\mone$, and $\mtwo$. The sampled Gaia-band light fractions are
 \begin{equation}
-\beta_{\rm ecl}=-90^\circ,-75^\circ,\ldots,+75^\circ,+90^\circ
+\betag=0.05,\ 0.25,\ 0.45,
 \end{equation}
-and longitudes $\lambda_{\rm ecl}=0^\circ,90^\circ,180^\circ,270^\circ$ at each non-polar latitude, with one unique point at each pole. This yields 46 sky positions. Their coordinates are transformed to ICRS before querying the nominal schedule.
-
-The physical grid is
+the angular scales are
 \begin{equation}
-\betag=0.05,0.15,0.25,0.35,0.45
+\aalpha=0.40,\ 0.60,\ 0.80,\ 1.00,
 \end{equation}
-and
+and the idealized profile elongations are
 \begin{equation}
-\asig=0.40,0.50,0.60,0.80,1.00.
+\psfelong=1.5,\ 3.0.
 \end{equation}
-Ten independent noise seeds and two fitted measurement hypotheses give
+Ten independent noise seeds and three fitted measurement models produce
 \begin{equation}
-46\times5\times5\times10\times2=23\,000
+3\times4\times2\times10\times3=720
 \end{equation}
-fit records. Native nominal transit counts range from 53 to 310.
+fit records. All 87 Gaia-like epochs remain single-peaked in the injected and final fitted models.
 
-\subsection{Matched-$N=53$ Control}
+The $\psfelong=1.5$ grid is the more demanding response-fidelity case because finite across-scan width has a larger effect. The $\psfelong=3$ grid is closer to the $\mone$ limiting behavior and tests whether the expected convergence of the response models is visible in the inference.
 
-The native sky map changes both the number of observations and their angle/time geometry. To separate these effects, the control fixes every position to the smallest native count, $N=53$. For each time-ordered native schedule, the sequence is divided into 53 equal-count strata and the central-ranked transit from each stratum is retained. The rule is deterministic and spans the mission; it is a control device, not a model of Gaia source selection.
+\subsection{External-Information-Strength Control}
 
-For a given injected system and seed, the code first regenerates the full native realization and then subsets the Gaia epochs. Consequently the resolved astrometry, the two RV curves, and the Gaia noise draws at retained epochs are identical to those in the native realization. Only the retained Gaia sampling changes.
-
-The reduced control grid uses $\betag=0.05,0.25,0.45$ and $\asig=0.40,0.50,0.60,1.00$, again with ten seeds and two hypotheses:
+The 720-fit grid showed that $\mone$ can be measurably misspecified relative to $\mtwo$ while still recovering component masses accurately when the resolved-astrometry/SB2 orbit is strong. We therefore fix the difficult single-peak point
 \begin{equation}
-46\times3\times4\times10\times2=11\,040
+\betag=0.25,\qquad \aalpha=1,\qquad \psfelong=1.5
+\label{eq:controlpoint}
 \end{equation}
-fit records.
+and vary only the precision of the independent external orbit constraints. The epoch counts remain 24 resolved-astrometry epochs and 48 SB2 epochs, while the Gaia-like AL uncertainty remains 0.10 mas. The three levels are
+\begin{center}
+\begin{tabular}{lcc}
+\hline\noalign{\smallskip}
+Level & $\sigma_{\rm rel}$ & $\sigma_{\rm RV}$\\
+\hline\noalign{\smallskip}
+Strong & 0.20 mas & 0.10 km s$^{-1}$\\
+Medium & 1.00 mas & 0.50 km s$^{-1}$\\
+Weak & 2.00 mas & 1.00 km s$^{-1}$\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+Thirty noise seeds and the three fitted response models give
+\begin{equation}
+3\times30\times3=270
+\end{equation}
+fits. This is not intended to define universal observational quality thresholds; it is a controlled test of how strongly external orbit information protects the inferred masses from Gaia response misspecification.
+
+\subsection{High-Statistics Matched-$\mtwo$ Control}
+
+The ten-seed response-fidelity grid produced small positive median parallax offsets even under the correctly specified $\mtwo$ fit. To distinguish a repeatable estimator offset from finite-ensemble fluctuation, the configuration in Equation~(\ref{eq:controlpoint}) is repeated for 100 independent seeds with the strong external constraints and $\mtwo$ fitted to an $\mtwo$ injection. Only $\mtwo$ is run, giving 100 fits. The summary records the mean, median, standard deviation, 16th/84th percentiles, and fraction of realizations with positive bias.
+
+\subsection{Supporting Full-Sky and Matched-Transit Experiments}
+
+Before introducing the finite-elongation response, the equal-width $\mone$ surrogate was studied over a 46-position ecliptic grid using nominal Gaia schedules. Five light fractions, five values of $a_{\rm rel,ang}/\sigma$, ten seeds, and two models produced 23\,000 native-schedule fit records. A second experiment reduced every sky position to 53 stratified mission-spanning transits, producing 11\,040 additional fits.
+
+Those experiments establish two supporting facts used here: model mismatch in the marginal-resolution regime varies strongly with sky-dependent transit number and scan geometry, and the intermediate light fraction $\betag=0.25$ is consistently the most sensitive sampled regime for the photocentre--resolution-aware discrepancy. They remain equal-width baseline experiments and are not combined numerically with the $\mtwo$ response-fidelity grids.

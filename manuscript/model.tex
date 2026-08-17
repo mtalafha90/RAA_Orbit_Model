@@ -3,7 +3,7 @@
 
 \subsection{Physical Parameterization}
 
-The baseline parameter vector is
+The fitted binary parameter vector is
 \begin{equation}
 \Theta=\{P,T_0,e,i,\Omega,\omega_1,M_1,M_2,\varpi,\gamma,\betag\},
 \label{eq:theta}
@@ -17,7 +17,7 @@ and the barycentric component axes are
 a_1=a_{\rm rel}\frac{M_2}{M_1+M_2},\qquad
 a_2=a_{\rm rel}\frac{M_1}{M_1+M_2}.
 \end{equation}
-The velocity semi-amplitudes are therefore derived rather than independently fitted,
+The RV semi-amplitudes are derived rather than fitted independently,
 \begin{equation}
 K_j=\frac{2\pi a_j\sin i}{P\sqrt{1-e^2}}.
 \end{equation}
@@ -34,7 +34,7 @@ the eccentric anomaly satisfies $M=E-e\sin E$, and
 
 \subsection{Orbit Conventions and Relative Astrometry}
 
-A joint visual/SB2 model is vulnerable to a $180^\circ$ convention error if the same numerical argument of periastron is used simultaneously for the primary RV curve and for the relative vector $\mathbf r_2-\mathbf r_1$. We adopt
+A joint visual/SB2 model is vulnerable to a $180^\circ$ convention error if the same numerical argument of periastron is used simultaneously for the primary RV curve and the relative vector $\mathbf r_2-\mathbf r_1$. We adopt
 \begin{equation}
 \omega_{\rm rel}=\omega_1+\pi,
 \label{eq:omegarel}
@@ -49,7 +49,7 @@ and the tangent-plane order used by the code is $(\Delta\alpha^\ast,\Delta\delta
 \frac{dz_{\rm rel}}{dt}=RV_2-RV_1.
 \end{equation}
 
-For resolved astrometry, the angular model is obtained by scaling the physical relative vector with the parallax. The present synthetic experiments use isotropic $2\times2$ astrometric covariance matrices, but the likelihood implementation supports full covariance whitening.
+For resolved astrometry, the angular model is obtained by scaling the physical relative vector with the parallax. The present synthetic experiments use isotropic $2\times2$ astrometric covariance matrices, while the likelihood implementation supports full covariance whitening.
 
 \subsection{SB2 Radial Velocities}
 
@@ -67,7 +67,7 @@ This convention satisfies barycentric momentum balance,
 M_1(RV_1-\gamma)+M_2(RV_2-\gamma)=0.
 \end{equation}
 
-\subsection{Photocentre Limit}
+\subsection{Photocentre Model $\mzero$}
 
 Define the secondary mass fraction and Gaia-band light fraction as
 \begin{equation}
@@ -81,49 +81,74 @@ For the relative vector $\mathbf r=\mathbf r_2-\mathbf r_1$, the unresolved phot
 \end{equation}
 For directional Gaia scan angle $\psi$, defined with $0^\circ$ toward North and $90^\circ$ toward East, the projected relative separation is
 \begin{equation}
-\Delta\eta=\Delta\alpha^\ast\sin\psi+\Delta\delta\cos\psi,
+\Delta\eta=\Delta\alpha^\ast\sin\psi+\Delta\delta\cos\psi.
 \label{eq:alproj}
 \end{equation}
-and the unresolved along-scan photocentre is $(\betag-B)\Delta\eta$.
+Model $\mzero$ therefore assigns the orbital along-scan displacement $(\betag-B)\Delta\eta$.
 
-\subsection{Resolution-Aware Gaussian Surrogate}
+\subsection{Equal-Width Blended Response $\mone$}
 
-The baseline resolution-aware prototype represents the one-dimensional along-scan light profile as
+The first resolution-aware model represents the one-dimensional light profile as
 \begin{equation}
-I(x)=F_1\exp\!\left[-\frac{(x-x_1)^2}{2\sigma^2}\right]
-+F_2\exp\!\left[-\frac{(x-x_2)^2}{2\sigma^2}\right].
+I(x)=F_1\exp\!\left[-\frac{(x-x_1)^2}{2\alpha^2}\right]
++F_2\exp\!\left[-\frac{(x-x_2)^2}{2\alpha^2}\right],
 \label{eq:gaussian}
 \end{equation}
-The predicted coordinate in the current single-peak model is the location of the global maximum of $I(x)$. The width $\sigma$ is a research scaling parameter. It is neither fitted to nor identified with Gaia's calibrated line-spread function in the frozen experiments.
+and takes the measured coordinate to be the unique global maximum of $I(x)$. This is the same equal-width response family implemented in \texttt{gaiamock} \citep{ElBadry2024}; its use here is an implementation of published measurement physics, not a novelty claim. In the original baseline experiments the width was denoted $\sigma$. For the response-fidelity experiments we write the narrow/along-axis research width as $\alpha$ so that it can be distinguished from the finite across-axis width introduced below.
 
-This response is not introduced here as new measurement physics. It reproduces the equal-width blended-profile response implemented in \texttt{gaiamock} \citep{ElBadry2024}. More generally, \citet{Penoyre2026} derives positions and resolvability for blended Gaussian sources with an elongated PSF and shows that the problem can be reduced to a one-dimensional profile using an orientation-dependent effective width. Equation~(\ref{eq:gaussian}) is therefore a deliberately restricted constant-effective-width case. The restriction is useful for isolating inference effects, but it omits the orientation-, colour-, focal-plane-, and drift-scan-dependent profile changes expected for Gaia \citep{Rowell2026}.
-
-The surrogate has two required limiting behaviours. As $|x_2-x_1|/\sigma\rightarrow0$, the maximum approaches the flux-weighted photocentre. For a sufficiently separated unequal-light pair, the maximum approaches the brighter component. These limits are tested numerically.
-
-\subsection{Single-Peak Validity Boundary}
-
-A single-coordinate likelihood becomes physically ambiguous once the equal-width Gaussian mixture develops two modes. For $F_1=1-\betag$, $F_2=\betag$ and projected component separation $s$, the transition is obtained by imposing simultaneous first- and second-derivative conditions. With $a=e^u$ and $b=e^{-u}$ one obtains
+The equal-width mixture has an exact single-to-double-mode boundary. For $F_1=1-\betag$, $F_2=\betag$ and projected separation $s$, the critical ratio follows from simultaneous first- and second-derivative conditions:
 \begin{equation}
 \sinh(2u)-2u=\ln\!\left(\frac{1-\betag}{\betag}\right),
 \end{equation}
-and
 \begin{equation}
-\frac{s_{\rm crit}}{\sigma}=2\cosh u.
+\frac{s_{\rm crit}}{\alpha}=2\cosh u.
 \label{eq:scrit}
 \end{equation}
-Thus $s_{\rm crit}/\sigma\rightarrow\infty$ for a dark secondary and $s_{\rm crit}/\sigma=2$ for equal light. Equation~(\ref{eq:scrit}) is used here as an exact validation/domain criterion for the restricted equal-width surrogate. General blended-source resolvability, including orientation-dependent effective widths, is treated by \citet{Penoyre2026}; Equation~(\ref{eq:scrit}) is not claimed as a new general Gaia resolution criterion.
+Equation~(\ref{eq:scrit}) is used only as a validity criterion for this restricted equal-width profile. It is not a calibrated Gaia angular-resolution threshold.
 
-Before every baseline synthetic fit, epochs predicted to be multi-peak under the injected model are excluded from the present one-coordinate likelihood. The photocentre and resolution-aware hypotheses are then fit to the identical retained epoch set. The optimizer may use a continuous peak branch internally, but a final resolution-aware solution is accepted for scientific analysis only if all retained epochs are single-peaked. The output records both the flagged fraction and the final validity state.
+\subsection{Orientation-Dependent Response $\mtwo$}
 
-\subsection{Joint Fit and Model Comparison}
-
-The baseline joint objective combines resolved relative astrometry, both SB2 velocities, and the Gaia-like along-scan observations. All eleven parameters in Equation~(\ref{eq:theta}) are fitted with bounded deterministic least squares. The same synthetic noise realization is used for both hypotheses for a given grid point and random seed.
-
-We summarize model mismatch by
+To test response fidelity rather than matched-model recovery alone, the injected model is generalized using the elongated-Gaussian treatment of \citet{Penoyre2026}. Let $\alpha$ denote the narrow/along-axis width and $\beta_{\rm PSF}\geq\alpha$ the long/across-axis width of the idealized Gaussian. If $\phi$ is the angle between the binary separation vector and the scan axis, the effective one-dimensional width is
 \begin{equation}
-\dchi=\chi^2_{\rm photo}-\chi^2_{\rm RAA}.
-\label{eq:dchi}
+\gamma(\phi)=
+\left[
+\frac{\cos^2\phi}{\alpha^2}
++\frac{\sin^2\phi}{\beta_{\rm PSF}^2}
+\right]^{-1/2}.
+\label{eq:gamma}
 \end{equation}
-Positive values mean that the resolution-aware model attains a smaller $\chi^2$ on the same injected realization. The models have the same fitted parameter count but are not nested, so throughout this paper $\dchi$ is used descriptively; it is not converted to a Gaussian ``sigma'' significance.
+The two-dimensional blend can then be reduced to the same dimensionless one-dimensional peak problem after scaling the full component separation $r$ by $\gamma(\phi)$. The code solves the peak numerically using the exact effective width in Equation~(\ref{eq:gamma}); it does not use the corrected low-order series expressions from \citet{Penoyre2026}.
 
-The frozen full-sky experiments use the binary orbital along-scan term as their controlled Gaia channel; they do not retroactively include later code extensions for absolute proper motion/parallax terms or posterior sampling. Those extensions are validation tools for subsequent experiments. A real Gaia target analysis will additionally require the spacecraft ephemeris, calibrated measurement physics, source-level nuisance parameters, and a production posterior engine.
+For finite $\beta_{\rm PSF}$, the mode-count criterion uses
+\begin{equation}
+\rho=\frac{r}{\gamma(\phi)}
+\end{equation}
+together with the same light-ratio-dependent critical value as the equal-width one-dimensional mixture. The resulting peak location along the pair axis is projected back onto the along-scan direction. In the limit
+\begin{equation}
+\beta_{\rm PSF}\rightarrow\infty,
+\end{equation}
+the implementation is regression-tested to recover $\mone$ exactly. This is the appropriate limiting connection to the effectively unconstrained across-scan assumption of the one-dimensional response; a circular Gaussian with $\beta_{\rm PSF}=\alpha$ is not identified with $\mone$.
+
+Neither $\alpha$ nor $\beta_{\rm PSF}$ is a calibrated Gaia PLSF width. The finite-elongation model remains an idealized research surrogate. Gaia's actual PLSF contains additional time-, colour-, focal-plane-, window-, and drift-scan dependences \citep{Rowell2021,Rowell2026}.
+
+\subsection{Single-Peak Validity}
+
+A one-coordinate likelihood becomes ambiguous when the surrogate profile is multi-peaked. Before each response-fidelity realization, epochs classified as multi-peak under the injected $\mtwo$ response are excluded. All fitted models then use the identical retained epochs. The optimizer may traverse a continuous peak branch internally, but an $\mone$ or $\mtwo$ fit is accepted for scientific analysis only when the final fitted response is single-peaked at every retained epoch. The reported 720-fit, 270-fit, and 100-seed experiments all retain all 87 Gaia-like epochs and contain no multi-peak injection or final prediction.
+
+\subsection{Joint Objective and Paired Model Comparison}
+
+The deterministic validation objective combines resolved relative astrometry, both SB2 velocities, and Gaia-like along-scan observations. All eleven parameters in Equation~(\ref{eq:theta}) are fitted with bounded least squares. For each physical configuration and random seed, $\mzero$, $\mone$, and $\mtwo$ are fitted to the same synthetic realization.
+
+We use
+\begin{align}
+\Delta\chi^2_{0,2}&=\chi^2_{\mzero}-\chi^2_{\mtwo},\\
+\Delta\chi^2_{1,2}&=\chi^2_{\mone}-\chi^2_{\mtwo}
+\end{align}
+as descriptive paired mismatch diagnostics. Positive values favor the more faithful $\mtwo$ response on the same data, but the models are not treated as nested and the differences are not converted to Gaussian detection significances.
+
+The primary scientific diagnostics are instead the fractional parameter biases,
+\begin{equation}
+\delta_x=\frac{\widehat{x}-x_{\rm true}}{x_{\rm true}},
+\label{eq:fracbias}
+\end{equation}
+especially for the physical component masses $M_1$ and $M_2$, parallax $\varpi$, and light fraction $\betag$. The current study uses deterministic fits to isolate response-model bias. Posterior coverage is intentionally deferred until this hierarchy is established.
