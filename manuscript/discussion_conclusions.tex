@@ -5,15 +5,15 @@
 
 The central result of the completed response-fidelity programme is not simply that a more detailed response yields a smaller $\chi^2$. The physical consequence of response misspecification depends strongly on how well the binary orbit is constrained by independent data.
 
-Under the strong resolved-astrometry/SB2 configuration, the photocentre approximation produces coherent percent-level biases in the component masses and parallax. Replacing it with the established equal-width blended response removes almost all of the mass bias, even though $M_1$ remains measurably inconsistent with the injected finite-elongation $M_2$ likelihood. The strong external orbit therefore protects the masses from moderate response misspecification. The Gaia-band light fraction is less protected: it retains a several-per-cent $M_1$ bias at the same point.
+Under the strong resolved-astrometry/SB2 configuration, the photocentre approximation produces coherent percent-level biases in the component masses and parallax. Replacing it with the established equal-width blended response removes almost all of the mass bias, even though $\mone$ remains measurably inconsistent with the injected finite-elongation $\mtwo$ likelihood. The strong external orbit therefore protects the masses from moderate response misspecification. The Gaia-band light fraction is less protected: it retains a several-per-cent $\mone$ bias at the same point.
 
-As the external orbit is weakened, that protection disappears. The photocentre mass biases rise to approximately $5$--$6\%$, while the equal-width response develops residual mass biases at the $1$--$1.4\%$ level. The correctly specified $M_2$ solution remains centered on the injected parameters but becomes noisier. The response fidelity required for accurate dynamical masses is therefore not a property of Gaia measurements alone; it depends on the information balance among Gaia, resolved astrometry, and the two RV curves.
+As the external orbit is weakened, that protection disappears. The photocentre mass biases rise to approximately $5$--$6\%$, while the equal-width response develops residual mass biases at the $1$--$1.4\%$ level. The correctly specified $\mtwo$ solution remains centered on the injected parameters but becomes noisier. The response fidelity required for accurate dynamical masses is therefore not a property of Gaia measurements alone; it depends on the information balance among Gaia, resolved astrometry, and the two RV curves.
 
-This result also explains why likelihood preference and physical bias need not track each other. A weakly constrained wrong model can move the orbit parameters to absorb part of the astrometric response error, reducing $\Delta\chi^2$ while increasing the bias in $M_1$, $M_2$, and $\varpi$. For a scientific target, goodness of fit alone is therefore insufficient to establish that the measurement model is safe for dynamical-mass inference.
+This result also explains why likelihood preference and physical bias need not track each other. A weakly constrained wrong model can move the orbit parameters to absorb part of the astrometric response error, reducing $\Delta\chi^2$ while increasing the bias in the physical masses $M_1$, $M_2$, and parallax $\varpi$. For a scientific target, goodness of fit alone is therefore insufficient to establish that the measurement model is safe for dynamical-mass inference.
 
 \subsection{Light Ratio Is a More Sensitive Response Diagnostic}
 
-The Gaia-band light fraction reacts more strongly to measurement-response mismatch than the component masses when the external dynamical orbit is strong. At the central point, $M_1$ reduces the mass biases below $0.1\%$ but retains a $-3.3\%$ median light-fraction bias. At lower true light fraction the fractional bias can be larger still.
+The Gaia-band light fraction reacts more strongly to measurement-response mismatch than the component masses when the external dynamical orbit is strong. At the central point, $\mone$ reduces the mass biases below $0.1\%$ but retains a $-3.3\%$ median light-fraction bias. At lower true light fraction the fractional bias can be larger still.
 
 This is physically plausible because the external visual-SB2 data constrain the geometry and mass ratio directly, whereas $\betag$ is tied more specifically to the mapping between component separation and measured blended position. The light ratio can therefore act as an early indicator that the Gaia response family is incomplete even when the dynamical masses appear stable.
 
@@ -33,9 +33,9 @@ Several limitations remain essential.
 
 First, $\alpha$ and $\beta_{\rm PSF}$ are research-surrogate widths. Neither 50 mas nor any sampled $\aalpha$ is a calibrated Gaia resolution scale. The response-fidelity boundaries reported here cannot be translated directly into angular-separation selection cuts for real sources.
 
-Second, $M_2$ is still an idealized elongated Gaussian. Gaia uses a calibrated PLSF with additional drift-scan, colour, focal-plane, window, gating, background, source-matching, and time-dependent effects \citep{Rowell2021,Rowell2026}. The fact that $M_2$ is the correct model for the present injection establishes internal inference behavior, not fidelity to Gaia hardware or processing.
+Second, $\mtwo$ is still an idealized elongated Gaussian. Gaia uses a calibrated PLSF with additional drift-scan, colour, focal-plane, window, gating, background, source-matching, and time-dependent effects \citep{Rowell2021,Rowell2026}. The fact that $\mtwo$ is the correct model for the present injection establishes internal inference behavior, not fidelity to Gaia hardware or processing.
 
-Third, all quantitative results use deterministic least-squares fitting. The 100-seed matched-$M_2$ control shows that the estimator recenters on the truth for the controlled configuration, but it is not a posterior-calibration experiment. Credible-interval coverage under response misspecification remains a separate next stage.
+Third, all quantitative results use deterministic least-squares fitting. The 100-seed matched-$\mtwo$ control shows that the estimator recenters on the truth for the controlled configuration, but it is not a posterior-calibration experiment. Credible-interval coverage under response misspecification remains a separate next stage.
 
 Fourth, the response-fidelity and external-information experiments use one physical binary and one archived Gaia-like schedule. The supporting full-sky experiment shows that mismatch amplitude varies strongly with transit count and scan geometry. The mass-bias results should therefore not be generalized into universal thresholds without repeating the response hierarchy over period, eccentricity, inclination, mass ratio, magnitude/noise, sky position, and external-data cadence.
 
@@ -45,7 +45,7 @@ Finally, once a close-pair profile becomes genuinely multi-peaked, a one-coordin
 
 The official Gaia DR4 expected-content documentation lists lower-level products relevant to this programme, including epoch astrometry, epoch images, and double-lined RVS epoch information, while the final data model and processing documentation remain subject to release validation. DR4 is therefore both the main observational opportunity and the principal remaining overlap risk: current public material does not establish whether the eventual DPAC binary likelihood internally uses a physical marginal-resolution PLSF/image response for orbit inference.
 
-The natural real-data programme is to identify visual SB2s for which the relative orbit and both RV curves already constrain the component geometry well, then fit the released Gaia epoch data with a response hierarchy analogous to $M_0$--$M_2$. If epoch images permit direct sample-level modelling, the response should ultimately be fitted in image space rather than collapsed to a single coordinate.
+The natural real-data programme is to identify visual SB2s for which the relative orbit and both RV curves already constrain the component geometry well, then fit the released Gaia epoch data with a response hierarchy analogous to $\mzero$--$\mtwo$. If epoch images permit direct sample-level modelling, the response should ultimately be fitted in image space rather than collapsed to a single coordinate.
 
 \section{Conclusions}
 \label{sect:conclusion}
@@ -55,15 +55,15 @@ We developed and tested a joint orbit framework for resolved relative astrometry
 \begin{enumerate}
 \item The broad combination of Gaia/astrometry/RV data and the nonlinear blended response are prior art. The candidate gap is the specific stellar inverse combination and, more importantly, the unresolved question of how response fidelity propagates into component masses and parallax.
 
-\item In a 720-fit paired hierarchy, the photocentre model $M_0$ produces coherent physical bias in the single-peak marginal-resolution regime. At $\betag=0.25$, $\aalpha=1$, and $\psfelong=1.5$, the median biases are $-1.26\%$ and $-1.28\%$ in the two component masses, $+0.93\%$ in parallax, and $-15.34\%$ in light fraction.
+\item In a 720-fit paired hierarchy, the photocentre model $\mzero$ produces coherent physical bias in the single-peak marginal-resolution regime. At $\betag=0.25$, $\aalpha=1$, and $\psfelong=1.5$, the median biases are $-1.26\%$ and $-1.28\%$ in the two component masses, $+0.93\%$ in parallax, and $-15.34\%$ in light fraction.
 
-\item The published equal-width response $M_1$ removes almost all of the component-mass bias under strong independent orbital constraints, despite remaining measurably misspecified relative to $M_2$. At the same point its median mass biases are $-0.03\%$ and $-0.09\%$, while the light-fraction bias remains $-3.30\%$.
+\item The published equal-width response $\mone$ removes almost all of the component-mass bias under strong independent orbital constraints, despite remaining measurably misspecified relative to $\mtwo$. At the same point its median mass biases are $-0.03\%$ and $-0.09\%$, while the light-fraction bias remains $-3.30\%$.
 
-\item The additional finite-elongation fidelity becomes progressively less important as $\psfelong$ increases toward the $M_1$ limit. At $\betag=0.25$ and $\aalpha=1$, the median $\Delta\chi^2_{1,2}$ decreases from 129.3 at $\psfelong=1.5$ to 5.0 at $\psfelong=3$.
+\item The additional finite-elongation fidelity becomes progressively less important as $\psfelong$ increases toward the $\mone$ limit. At $\betag=0.25$ and $\aalpha=1$, the median $\Delta\chi^2_{1,2}$ decreases from 129.3 at $\psfelong=1.5$ to 5.0 at $\psfelong=3$.
 
-\item The response fidelity required for accurate masses depends on the strength of independent resolved-astrometry/SB2 information. Weakening those constraints increases the photocentre mass bias from about $1.2\%$ to $5$--$6\%$ and increases the residual $M_1$ mass bias to about $1$--$1.4\%$.
+\item The response fidelity required for accurate masses depends on the strength of independent resolved-astrometry/SB2 information. Weakening those constraints increases the photocentre mass bias from about $1.2\%$ to $5$--$6\%$ and increases the residual $\mone$ mass bias to about $1$--$1.4\%$.
 
-\item The correctly specified $M_2$ fit remains centered near the truth, with larger random scatter as the external orbit weakens. A dedicated 100-seed matched-$M_2$ control yields a median parallax bias of only $+0.0167\%$ and a 16--84 percentile interval spanning $-0.1274\%$ to $+0.1779\%$.
+\item The correctly specified $\mtwo$ fit remains centered near the truth, with larger random scatter as the external orbit weakens. A dedicated 100-seed matched-$\mtwo$ control yields a median parallax bias of only $+0.0167\%$ and a 16--84 percentile interval spanning $-0.1274\%$ to $+0.1779\%$.
 
 \item Light fraction is a more sensitive indicator of response misspecification than the component masses when the external orbit is strong. This suggests that well-constrained visual SB2s may be useful not only for mass inference but also for empirical calibration of close-pair Gaia response parameters.
 
@@ -74,7 +74,7 @@ The next methodological step is posterior-coverage testing with response nuisanc
 
 \section*{Data and Code Availability}
 
-The implementation, validation tests, experiment runners, compact frozen result tables, and manuscript figures are versioned in the accompanying \texttt{RAA\_Orbit\_Model} repository. The raw 720-fit, 270-fit, and 100-seed CSV outputs are generated by the documented scripts; compact summaries used directly in this manuscript are committed under \texttt{results/frozen}. The earlier full-sky raw tables are likewise reproducible from the archived nominal scan schedules and documented runners.
+The implementation, validation tests, experiment runners, compact frozen result tables, and supporting figures are versioned in the accompanying \texttt{RAA\_Orbit\_Model} repository. The raw 720-fit, 270-fit, and 100-seed CSV outputs are generated by the documented scripts; compact summaries used directly in this manuscript are committed under \texttt{results/frozen}. The earlier full-sky raw tables are likewise reproducible from the archived nominal scan schedules and documented runners.
 
 \begin{acknowledgements}
 The author acknowledges the open Gaia mission documentation and the public software and literature resources used to construct the controlled scanning-law and response-fidelity experiments.
