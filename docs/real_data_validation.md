@@ -39,7 +39,7 @@ The target-specific implementation is now in:
 - `scripts/validate_gl765_dr3.py`
 - `tests/test_dr3_target.py`
 
-The query uses the SIMBAD position of HD 186922 / HIP 96656, approximately RA = 294.7765558 deg and Dec = +76.4220233 deg. It deliberately does **not** use the incorrect coordinates stored in the legacy GL765 input header.
+The preferred target identification now uses the Gaia DR3 `hipparcos2_best_neighbour` crossmatch with `original_ext_source_id = 96656`. This is safer than identifying a high-proper-motion source by simple angular nearest neighbour because the Gaia crossmatch uses the available astrometric parameters when matching catalogue epochs. A 10-arcsec cone around the SIMBAD position (approximately RA = 294.7765558 deg, Dec = +76.4220233 deg) is retained only as a diagnostic fallback. The incorrect coordinates stored in the legacy GL765 input header are never used for the Gaia identification.
 
 Run
 
@@ -47,15 +47,21 @@ Run
 python scripts/validate_gl765_dr3.py --show-query
 ```
 
-and execute the printed ADQL in the Gaia Archive, then export the result as CSV and run
+and execute the printed HIP2-crossmatch ADQL in the Gaia Archive, then export the result as CSV and run
 
 ```bash
 python scripts/validate_gl765_dr3.py gj765_dr3.csv
 ```
 
+A coordinate fallback can be printed with
+
+```bash
+python scripts/validate_gl765_dr3.py --show-cone-query
+```
+
 The target query retrieves, where available:
 
-- source ID and coordinate separation from the external target position
+- Gaia source ID and Hipparcos-2 crossmatch metadata
 - parallax and proper motion
 - RUWE, along-scan observation counts, astrometric GoF/chi2, and excess noise
 - `ipd_frac_multi_peak`
