@@ -6,8 +6,11 @@ scan-angle diagnostics, and any NSS orbit. They do not provide the general
 stellar epoch along-scan astrometry needed to fit the RAA response hierarchy
 M0/M1/M2 directly.
 
-The sky position below is the SIMBAD position of HD 186922 / HIP 96656, not
-the incorrect coordinate stored in the legacy GL765 input file.
+The primary identification route uses Gaia DR3's own Hipparcos-2 best-neighbour
+crossmatch for HIP 96656. This is preferable to a nearest-neighbour cone search
+for a high-proper-motion binary because Gaia's crossmatch propagates available
+astrometric parameters between catalogue epochs. The SIMBAD sky position is
+retained only as an independent sanity check / fallback.
 """
 
 from __future__ import annotations
@@ -23,9 +26,10 @@ import numpy as np
 from .dr3_validation import thiele_innes_to_campbell
 
 
+GJ765_HIP = 96656
 GJ765_RA_DEG = 294.7765558333333
 GJ765_DEC_DEG = 76.42202333333333
-GJ765_SEARCH_RADIUS_ARCSEC = 5.0
+GJ765_SEARCH_RADIUS_ARCSEC = 10.0
 
 # Published combined-orbit quantities used only to define an external benchmark.
 # Balega et al. (2007), A&A 464, 635--640.
@@ -41,23 +45,7 @@ GJ765_DELTA_V_MAG = 0.65
 GJ765_ORBITAL_PARALLAX_MAS = 31.0
 
 
-def gj765_target_query(radius_arcsec: float = GJ765_SEARCH_RADIUS_ARCSEC) -> str:
-    """Return ADQL for the DR3 source row and any NSS two-body solutions.
-
-    A LEFT OUTER JOIN is used because absence from ``nss_two_body_orbit`` is
-    itself scientifically relevant metadata, but is not a falsification of RAA:
-    DR3 NSS processing is highly selected and partially resolved doubles were
-    filtered upstream of the astrometric-binary pipeline.
-    """
-    radius_deg = float(radius_arcsec) / 3600.0
-    if radius_deg <= 0:
-        raise ValueError("radius_arcsec must be > 0")
-    return f"""
-SELECT
-    DISTANCE(
-        POINT('ICRS', src.ra, src.dec),
-        POINT('ICRS', {GJ765_RA_DEG:.12f}, {GJ765_DEC_DEG:.12f})
-    ) * 3600.0 AS separation_arcsec,
+_SOURCE_AND_NSS_COLUMNS = """
     src.source_id,
     src.designation,
     src.ra,
@@ -100,6 +88,45 @@ SELECT
     nss.b_thiele_innes,
     nss.f_thiele_innes,
     nss.g_thiele_innes
+""".strip()
+
+
+def gj765_target_query() -> str:
+    """Return the preferred DR3 ADQL, identified by Gaia's HIP2 crossmatch."""
+    return f"""
+SELECT
+    hip.angular_distance AS separation_arcsec,
+    hip.number_of_neighbours AS hipparcos2_number_of_neighbours,
+    hip.gaia_astrometric_params AS hipparcos2_gaia_astrometric_params,
+    {_SOURCE_AND_NSS_COLUMNS}
+FROM gaiadr3.hipparcos2_best_neighbour AS hip
+JOIN gaiadr3.gaia_source AS src
+    ON hip.source_id = src.source_id
+LEFT OUTER JOIN gaiadr3.nss_two_body_orbit AS nss
+    ON src.source_id = nss.source_id
+WHERE hip.original_ext_source_id = {GJ765_HIP}
+ORDER BY nss.nss_solution_type ASC
+""".strip()
+
+
+def gj765_cone_query(radius_arcsec: float = GJ765_SEARCH_RADIUS_ARCSEC) -> str:
+    """Fallback coordinate query around the SIMBAD position.
+
+    This should not be used to identify the target by simple nearest distance
+    alone unless the catalogue-epoch/proper-motion issue has been checked.
+    """
+    radius_deg = float(radius_arcsec) / 3600.0
+    if radius_deg <= 0:
+        raise ValueError("radius_arcsec must be > 0")
+    return f"""
+SELECT
+    DISTANCE(
+        POINT('ICRS', src.ra, src.dec),
+        POINT('ICRS', {GJ765_RA_DEG:.12f}, {GJ765_DEC_DEG:.12f})
+    ) * 3600.0 AS separation_arcsec,
+    0 AS hipparcos2_number_of_neighbours,
+    0 AS hipparcos2_gaia_astrometric_params,
+    {_SOURCE_AND_NSS_COLUMNS}
 FROM gaiadr3.gaia_source AS src
 LEFT OUTER JOIN gaiadr3.nss_two_body_orbit AS nss
     ON src.source_id = nss.source_id
@@ -176,10 +203,22 @@ def _as_int(value) -> int | None:
         return None
 
 
+def _is_astrometric_nss_type(value: str) -> bool:
+    value = str(value).strip()
+    return (
+        value == "Orbital"
+        or value.startswith("OrbitalAlternative")
+        or value.startswith("OrbitalTargetedSearch")
+        or value == "AstroSpectroSB1"
+    )
+
+
 @dataclass(frozen=True)
 class DR3TargetSummary:
     source_id: str
     separation_arcsec: float
+    hipparcos2_number_of_neighbours: int | None
+    hipparcos2_gaia_astrometric_params: int | None
     parallax_mas: float
     parallax_error_mas: float
     ruwe: float
@@ -214,32 +253,37 @@ def load_target_export(path: str | Path) -> list[dict[str, str]]:
 
 
 def summarize_target_rows(rows: list[dict[str, str]]) -> DR3TargetSummary:
-    """Select the nearest Gaia source and summarise all of its NSS rows."""
+    """Summarise the source returned by the HIP2 crossmatch / fallback export."""
     if not rows:
         raise ValueError("rows must not be empty")
 
-    finite_sep = [(_as_float(r.get("separation_arcsec")), r) for r in rows]
-    finite_sep = [(s, r) for s, r in finite_sep if np.isfinite(s)]
-    if not finite_sep:
-        raise ValueError("no finite separation_arcsec values in target export")
-    _, nearest_row = min(finite_sep, key=lambda item: item[0])
-    source_id = str(nearest_row.get("source_id", "")).strip()
-    if not source_id:
-        raise ValueError("nearest row has no source_id")
+    source_ids = {str(r.get("source_id", "")).strip() for r in rows if str(r.get("source_id", "")).strip()}
+    if not source_ids:
+        raise ValueError("target export contains no source_id")
 
-    target_rows = [r for r in rows if str(r.get("source_id", "")).strip() == source_id]
+    # Preferred HIP2 query should return one Gaia source, possibly repeated for
+    # several NSS rows. For a fallback cone export, preserve the older nearest
+    # selection while requiring the user to verify the identification.
+    if len(source_ids) == 1:
+        source_id = next(iter(source_ids))
+        target_rows = rows
+        nearest_row = rows[0]
+    else:
+        finite_sep = [(_as_float(r.get("separation_arcsec")), r) for r in rows]
+        finite_sep = [(s, r) for s, r in finite_sep if np.isfinite(s)]
+        if not finite_sep:
+            raise ValueError("multiple sources and no finite separation_arcsec values")
+        _, nearest_row = min(finite_sep, key=lambda item: item[0])
+        source_id = str(nearest_row.get("source_id", "")).strip()
+        target_rows = [r for r in rows if str(r.get("source_id", "")).strip() == source_id]
+
     nss_rows = [r for r in target_rows if str(r.get("nss_solution_type", "")).strip()]
     nss_types = tuple(sorted({str(r["nss_solution_type"]).strip() for r in nss_rows}))
-
-    # Prefer an astrometric orbit when present; otherwise leave Campbell values NaN.
-    astrometric_types = {
-        "Orbital", "OrbitalAlternative", "OrbitalAlternativeValidated",
-        "OrbitalTargetedSearch", "OrbitalTargetedSearchValidated", "AstroSpectroSB1",
-    }
     astrometric_nss = next(
-        (r for r in nss_rows if str(r.get("nss_solution_type", "")).strip() in astrometric_types),
+        (r for r in nss_rows if _is_astrometric_nss_type(r.get("nss_solution_type", ""))),
         None,
     )
+
     campbell = None
     if astrometric_nss is not None:
         constants = [_as_float(astrometric_nss.get(k)) for k in (
@@ -255,6 +299,8 @@ def summarize_target_rows(rows: list[dict[str, str]]) -> DR3TargetSummary:
     return DR3TargetSummary(
         source_id=source_id,
         separation_arcsec=_as_float(nearest_row.get("separation_arcsec")),
+        hipparcos2_number_of_neighbours=_as_int(nearest_row.get("hipparcos2_number_of_neighbours")),
+        hipparcos2_gaia_astrometric_params=_as_int(nearest_row.get("hipparcos2_gaia_astrometric_params")),
         parallax_mas=_as_float(nearest_row.get("parallax")),
         parallax_error_mas=_as_float(nearest_row.get("parallax_error")),
         ruwe=_as_float(nearest_row.get("ruwe")),
