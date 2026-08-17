@@ -1,6 +1,6 @@
 # Real-data validation status
 
-The validation ladder now has two distinct real-data stages.
+The validation ladder now has three distinct real-data stages.
 
 ## V6a — real resolved-astrometry + SB2 core check: executed
 
@@ -29,9 +29,56 @@ The legacy file header contains parallax = 54.27 mas. When that value is held fi
 
 V6a validates the non-Gaia physical orbit engine on a real stellar binary. It does **not** validate the marginal-resolution Gaia response.
 
-## V6b — DR3 catalogue consistency: still limited
+## V6b — Gaia DR3 catalogue/IPD consistency: target workflow implemented, target row not yet retrieved here
 
-The existing `dr3_validation.py` machinery remains useful for catalogue-level consistency and candidate selection, including Thiele-Innes/Campbell conversion and IPD diagnostics. A catalogue-level DR3 test cannot directly validate the close-pair along-scan response because DR3 does not publish the stellar epoch astrometry needed by the likelihood, and partially resolved doubles were filtered upstream of the DR3 astrometric-binary processing.
+DR3 can provide a scientifically useful intermediate test even though it cannot supply the general stellar epoch along-scan measurements required to fit the RAA response hierarchy directly.
+
+The target-specific implementation is now in:
+
+- `src/raa_orbit_model/dr3_target.py`
+- `scripts/validate_gl765_dr3.py`
+- `tests/test_dr3_target.py`
+
+The query uses the SIMBAD position of HD 186922 / HIP 96656, approximately RA = 294.7765558 deg and Dec = +76.4220233 deg. It deliberately does **not** use the incorrect coordinates stored in the legacy GL765 input header.
+
+Run
+
+```bash
+python scripts/validate_gl765_dr3.py --show-query
+```
+
+and execute the printed ADQL in the Gaia Archive, then export the result as CSV and run
+
+```bash
+python scripts/validate_gl765_dr3.py gj765_dr3.csv
+```
+
+The target query retrieves, where available:
+
+- source ID and coordinate separation from the external target position
+- parallax and proper motion
+- RUWE, along-scan observation counts, astrometric GoF/chi2, and excess noise
+- `ipd_frac_multi_peak`
+- `ipd_gof_harmonic_amplitude` and `ipd_gof_harmonic_phase`
+- scan-direction moment strengths and mean directions
+- `duplicated_source`, `non_single_star`, and `has_epoch_rv`
+- every matching `nss_two_body_orbit` solution and its Thiele-Innes constants
+
+The official DR3 documentation states that `ipd_frac_multi_peak` is the percentage of successful-IPD windows for which the IPD algorithm identified more than one peak. `ipd_gof_harmonic_amplitude` measures the scan-angle-dependent amplitude of the IPD goodness of fit and can indicate non-isotropic spatial structure such as a partially resolved binary. Its phase has a physical but non-trivial relation to binary position angle that depends on the resolution regime. These diagnostics are therefore highly relevant to RAA, but they are **not equivalent** to the mode classification or residuals of the research surrogate.
+
+The ordinary unresolved-photocentre benchmark from the Balega et al. orbit is also encoded. With M1 = 0.831 Msun, M2 = 0.763 Msun, a_rel = 189 mas, and Delta V = 0.65 mag,
+
+- secondary mass fraction B = 0.47867
+- beta_V = 0.35465, used only as a temporary optical light-fraction proxy
+- predicted M0 photocentre semi-major axis = |beta_V - B| a_rel = 23.44 mas
+
+`beta_V` must not be described as the Gaia G-band light fraction. The catalogue comparison becomes stronger once a component-resolved G-band flux ratio is available.
+
+If an astrometric NSS row exists, its A/B/F/G Thiele-Innes constants are converted to Campbell elements and compared with the external visual-SB2 orbit. If no NSS row exists, that result is **not** by itself a falsification: DR3 NSS is a selected sample, and partially resolved doubles were filtered upstream of the DR3 astrometric-binary processing.
+
+### Current execution status
+
+The exact Gaia DR3 source row for HIP 96656 has not been inserted into this repository. In the current development environment, dynamic Gaia Archive/VizieR catalogue queries are not reachable even though the public documentation is reachable. No RUWE, IPD value, DR3 source ID, or NSS solution is therefore inferred or invented here. V6b should remain labelled **query-ready / data-pull pending** until the exported target row is ingested and archived.
 
 ## V7 — Gaia DR4 epoch/image validation: pending public release
 
