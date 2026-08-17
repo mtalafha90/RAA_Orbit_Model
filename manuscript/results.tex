@@ -3,18 +3,18 @@
 
 \subsection{Experiment Integrity}
 
-All 720 response-fidelity fits, all 270 external-information-control fits, and all 100 high-statistics matched-$M_2$ fits converge successfully and satisfy the final scientific-validity checks. All 87 Gaia-like epochs are retained in every one of these experiments, with zero multi-peak injections and zero final multi-peak predictions. The results below therefore describe the intended single-peak marginal-resolution regime rather than an arbitrary choice between two resolved modes.
+All 720 response-fidelity fits, all 270 external-information-control fits, and all 100 high-statistics matched-$\mtwo$ fits converge successfully and satisfy the final scientific-validity checks. All 87 Gaia-like epochs are retained in every one of these experiments, with zero multi-peak injections and zero final multi-peak predictions. The results below therefore describe the intended single-peak marginal-resolution regime rather than an arbitrary choice between two resolved modes.
 
 \subsection{Response Fidelity at Fixed External-Orbit Quality}
 
-The 720-fit hierarchy gives a clear ordering. At the central difficult point $\betag=0.25$, $\aalpha=1$, and $\psfelong=1.5$, the photocentre model $M_0$ has a median $\chi^2=1494.5$, compared with 352.4 for the equal-width $M_1$ response and 207.2 for the matched $M_2$ response. The paired medians are
+The 720-fit hierarchy gives a clear ordering. At the central difficult point $\betag=0.25$, $\aalpha=1$, and $\psfelong=1.5$, the photocentre model $\mzero$ has a median $\chi^2=1494.5$, compared with 352.4 for the equal-width $\mone$ response and 207.2 for the matched $\mtwo$ response. The paired medians are
 \begin{equation}
 {\rm median}\,\Delta\chi^2_{0,2}=1272.7,\qquad
 {\rm median}\,\Delta\chi^2_{1,2}=129.3.
 \end{equation}
-Thus $M_1$ is still measurably misspecified relative to the injected finite-elongation response, even though it is much closer than the photocentre model.
+Thus $\mone$ is still measurably misspecified relative to the injected finite-elongation response, even though it is much closer than the photocentre model.
 
-The physical-parameter consequences are more informative than $\Delta\chi^2$. Table~\ref{tab:fidelitycentral} shows the median fractional biases at the same point. $M_0$ biases the two component masses by $-1.26\%$ and $-1.28\%$, the parallax by $+0.93\%$, and the Gaia-band light fraction by $-15.34\%$. In contrast, $M_1$ reduces the mass biases to $-0.03\%$ and $-0.09\%$ and the parallax bias to $+0.13\%$, despite retaining a $-3.30\%$ light-fraction bias. The correctly specified $M_2$ solution is centered close to the injected values.
+The physical-parameter consequences are more informative than $\Delta\chi^2$. Table~\ref{tab:fidelitycentral} shows the median fractional biases at the same point. $\mzero$ biases the two component masses by $-1.26\%$ and $-1.28\%$, the parallax by $+0.93\%$, and the Gaia-band light fraction by $-15.34\%$. In contrast, $\mone$ reduces the mass biases to $-0.03\%$ and $-0.09\%$ and the parallax bias to $+0.13\%$, despite retaining a $-3.30\%$ light-fraction bias. The correctly specified $\mtwo$ solution is centered close to the injected values.
 
 \begin{table}
 \begin{center}
@@ -25,9 +25,9 @@ The physical-parameter consequences are more informative than $\Delta\chi^2$. Ta
 Model & $\chi^2$ & $\delta M_1$ & $\delta M_2$ & $\delta\varpi$ & $\delta\betag$\\
  &  & (\%) & (\%) & (\%) & (\%)\\
 \hline\noalign{\smallskip}
-$M_0$ photocentre & 1494.5 & $-1.255$ & $-1.277$ & $+0.935$ & $-15.343$\\
-$M_1$ equal-width & 352.4 & $-0.026$ & $-0.095$ & $+0.132$ & $-3.303$\\
-$M_2$ oriented & 207.2 & $+0.070$ & $-0.014$ & $+0.083$ & $+0.053$\\
+$\mzero$ photocentre & 1494.5 & $-1.255$ & $-1.277$ & $+0.935$ & $-15.343$\\
+$\mone$ equal-width & 352.4 & $-0.026$ & $-0.095$ & $+0.132$ & $-3.303$\\
+$\mtwo$ oriented & 207.2 & $+0.070$ & $-0.014$ & $+0.083$ & $+0.053$\\
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
@@ -42,7 +42,7 @@ The coherent primary-mass bias also grows with angular scale. At $\betag=0.25$ a
 \label{tab:massseparation}
 \begin{tabular}{rrrr}
 \hline\noalign{\smallskip}
-$\aalpha$ & $M_0$ & $M_1$ & $M_2$\\
+$\aalpha$ & $\mzero$ & $\mone$ & $\mtwo$\\
  & \multicolumn{3}{c}{$\delta M_1$ (\%)}\\
 \hline\noalign{\smallskip}
 0.40 & $-0.232$ & $-0.063$ & $-0.057$\\
@@ -59,7 +59,7 @@ The separation dependence of the likelihood mismatch is similarly steep. For $\b
 
 At every one of the eight sampled combinations of $\aalpha$ and $\psfelong$, $\betag=0.25$ gives the largest ten-seed median $\Delta\chi^2_{0,2}$ among the three sampled light fractions. This reproduces the intermediate-light sensitivity previously found in the equal-width full-sky experiment, now with a finite-elongation injected response.
 
-\subsection{How Much Fidelity Beyond $M_1$ Is Needed?}
+\subsection{How Much Fidelity Beyond $\mone$ Is Needed?}
 
 The two elongations separate measurement-model mismatch from the broader failure of the photocentre approximation. At $\betag=0.25$ and $\aalpha=1$, increasing $\psfelong$ from 1.5 to 3.0 leaves the photocentre mismatch large:
 \begin{equation}
@@ -69,15 +69,15 @@ However, the equal-width mismatch collapses from
 \begin{equation}
 {\rm median}\,\Delta\chi^2_{1,2}=129.3
 \end{equation}
-to only 5.0, as expected from the $M_2\rightarrow M_1$ limiting behavior.
+to only 5.0, as expected from the $\mtwo\rightarrow\mone$ limiting behavior.
 
-The same convergence appears in the light fraction. At $\psfelong=1.5$, $M_1$ has a median $\betag$ bias of $-3.30\%$ at the central point; at $\psfelong=3$ it is only $-0.78\%$. The component-mass biases at $\psfelong=3$ are already below $0.05\%$ in magnitude for $M_1$. Thus a response can be detectably wrong in the Gaia-like likelihood while the component masses remain nearly unbiased because the independent orbit constraints absorb most of the dynamical information.
+The same convergence appears in the light fraction. At $\psfelong=1.5$, $\mone$ has a median $\betag$ bias of $-3.30\%$ at the central point; at $\psfelong=3$ it is only $-0.78\%$. The component-mass biases at $\psfelong=3$ are already below $0.05\%$ in magnitude for $\mone$. Thus a response can be detectably wrong in the Gaia-like likelihood while the component masses remain nearly unbiased because the independent orbit constraints absorb most of the dynamical information.
 
-The light fraction is more sensitive than the masses. For example, at $\aalpha=1$ and $\psfelong=1.5$, the fractional $M_1$ light-ratio bias reaches $-6.27\%$ at $\betag=0.05$, $-3.30\%$ at $\betag=0.25$, and $-0.48\%$ at $\betag=0.45$. In absolute light-fraction units, however, the central $\betag=0.25$ case remains the larger error. This distinction between fractional and absolute light-ratio error is important when identifying the most consequential regime.
+The light fraction is more sensitive than the masses. For example, at $\aalpha=1$ and $\psfelong=1.5$, the fractional $\mone$ light-ratio bias reaches $-6.27\%$ at $\betag=0.05$, $-3.30\%$ at $\betag=0.25$, and $-0.48\%$ at $\betag=0.45$. In absolute light-fraction units, however, the central $\betag=0.25$ case remains the larger error. This distinction between fractional and absolute light-ratio error is important when identifying the most consequential regime.
 
 \subsection{External Orbit Information Controls the Mass Bias}
 
-The external-information control demonstrates why $M_1$ can look sufficient for the masses in the strongly constrained reference experiment. Table~\ref{tab:external} shows the effect of weakening only the resolved-astrometry and SB2 precision at the fixed response point in Equation~(\ref{eq:controlpoint}).
+The external-information control demonstrates why $\mone$ can look sufficient for the masses in the strongly constrained reference experiment. Table~\ref{tab:external} shows the effect of weakening only the resolved-astrometry and SB2 precision at the fixed response point in Equation~(\ref{eq:controlpoint}).
 
 \begin{table}
 \begin{center}
@@ -88,34 +88,34 @@ The external-information control demonstrates why $M_1$ can look sufficient for 
 Level & Model & $\delta M_1$ & $\delta M_2$ & $\delta\varpi$ & $\delta\betag$\\
  & & (\%) & (\%) & (\%) & (\%)\\
 \hline\noalign{\smallskip}
-Strong & $M_0$ & $-1.273$ & $-1.230$ & $+0.830$ & $-15.343$\\
-       & $M_1$ & $-0.018$ & $-0.091$ & $+0.017$ & $-3.302$\\
-       & $M_2$ & $+0.067$ & $+0.004$ & $-0.004$ & $+0.059$\\
-Medium & $M_0$ & $-4.702$ & $-4.546$ & $+2.804$ & $-15.819$\\
-       & $M_1$ & $-0.606$ & $-0.845$ & $-0.324$ & $-3.808$\\
-       & $M_2$ & $+0.053$ & $+0.231$ & $-0.065$ & $+0.380$\\
-Weak   & $M_0$ & $-5.607$ & $-5.258$ & $+3.454$ & $-15.547$\\
-       & $M_1$ & $-1.019$ & $-1.395$ & $-1.436$ & $-5.303$\\
-       & $M_2$ & $+0.026$ & $+0.731$ & $-0.083$ & $+0.779$\\
+Strong & $\mzero$ & $-1.273$ & $-1.230$ & $+0.830$ & $-15.343$\\
+       & $\mone$ & $-0.018$ & $-0.091$ & $+0.017$ & $-3.302$\\
+       & $\mtwo$ & $+0.067$ & $+0.004$ & $-0.004$ & $+0.059$\\
+Medium & $\mzero$ & $-4.702$ & $-4.546$ & $+2.804$ & $-15.819$\\
+       & $\mone$ & $-0.606$ & $-0.845$ & $-0.324$ & $-3.808$\\
+       & $\mtwo$ & $+0.053$ & $+0.231$ & $-0.065$ & $+0.380$\\
+Weak   & $\mzero$ & $-5.607$ & $-5.258$ & $+3.454$ & $-15.547$\\
+       & $\mone$ & $-1.019$ & $-1.395$ & $-1.436$ & $-5.303$\\
+       & $\mtwo$ & $+0.026$ & $+0.731$ & $-0.083$ & $+0.779$\\
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
-\tablecomments{0.92\textwidth}{Each row is the median of 30 paired noise realizations at $\betag=0.25$, $\aalpha=1$, and $\psfelong=1.5$. Random scatter increases strongly in the weak-information $M_2$ case; the signed medians should therefore not be interpreted without their ensemble widths.}
+\tablecomments{0.92\textwidth}{Each row is the median of 30 paired noise realizations at $\betag=0.25$, $\aalpha=1$, and $\psfelong=1.5$. Random scatter increases strongly in the weak-information $\mtwo$ case; the signed medians should therefore not be interpreted without their ensemble widths.}
 \end{table}
 
 For the photocentre model, weakening the independent orbit constraints increases the median component-mass bias from roughly $1.2\%$ to $5$--$6\%$, while the parallax bias grows from $+0.83\%$ to $+3.45\%$. The equal-width response also ceases to be effectively exact for the masses: its median biases increase from $-0.02\%$ and $-0.09\%$ in the strong case to $-1.02\%$ and $-1.40\%$ in the weak case.
 
-The correctly specified $M_2$ medians remain near zero compared with the increasingly broad random scatter. For example, the weak-case $M_2$ secondary-mass 16--84 percentile interval is approximately $-1.79\%$ to $+4.11\%$. Thus weakening the external orbit both increases estimator variance and gives a misspecified Gaia response more freedom to bias the physical solution.
+The correctly specified $\mtwo$ medians remain near zero compared with the increasingly broad random scatter. For example, the weak-case $\mtwo$ secondary-mass 16--84 percentile interval is approximately $-1.79\%$ to $+4.11\%$. Thus weakening the external orbit both increases estimator variance and gives a misspecified Gaia response more freedom to bias the physical solution.
 
 A useful consequence is that residual fit quality and physical bias do not move in parallel. The median $\Delta\chi^2_{0,2}$ decreases from 1289.8 in the strong case to 887.4 and 807.6 in the medium and weak cases, even as the photocentre mass biases increase. The wrong model can absorb more of the Gaia-response error by distorting the physical orbit when the external constraints are weaker. A smaller residual mismatch therefore does not imply a smaller dynamical bias.
 
-\subsection{The 100-Seed Matched-$M_2$ Solution Recenters on the Truth}
+\subsection{The 100-Seed Matched-$\mtwo$ Solution Recenters on the Truth}
 
-The high-statistics matched-model control removes the ambiguity associated with the small ten-seed offsets. Over 100 independent $M_2\rightarrow M_2$ realizations at the central point, the median fractional parallax bias is $+0.0167\%$, with 16th and 84th percentiles of $-0.1274\%$ and $+0.1779\%$. Fifty-three per cent of the realizations have positive parallax error. The mean is $+0.0214\%$ and the standard deviation is $0.1509\%$. There is therefore no evidence in this control for a coherent positive parallax offset of the size suggested by the original ten-seed median.
+The high-statistics matched-model control removes the ambiguity associated with the small ten-seed offsets. Over 100 independent $\mtwo\rightarrow\mtwo$ realizations at the central point, the median fractional parallax bias is $+0.0167\%$, with 16th and 84th percentiles of $-0.1274\%$ and $+0.1779\%$. Fifty-three per cent of the realizations have positive parallax error. The mean is $+0.0214\%$ and the standard deviation is $0.1509\%$. There is therefore no evidence in this control for a coherent positive parallax offset of the size suggested by the original ten-seed median.
 
 \begin{table}
 \begin{center}
-\caption{High-Statistics Matched-$M_2$ Validation}
+\caption{High-Statistics Matched-$\mtwo$ Validation}
 \label{tab:m2control}
 \begin{tabular}{lrrrrr}
 \hline\noalign{\smallskip}
@@ -128,10 +128,10 @@ $\delta\betag$ (\%) & $-0.0189$ & $-0.0123$ & $-0.3286$ & $+0.2808$ & 0.3349\\
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
-\tablecomments{0.92\textwidth}{One hundred independent matched $M_2\rightarrow M_2$ realizations at the central response point with strong external constraints. The fraction of positive parallax errors is 0.53 and the median reduced $\chi^2$ is 0.982.}
+\tablecomments{0.92\textwidth}{One hundred independent matched $\mtwo\rightarrow\mtwo$ realizations at the central response point with strong external constraints. The fraction of positive parallax errors is 0.53 and the median reduced $\chi^2$ is 0.982.}
 \end{table}
 
-The component masses and light fraction are likewise centered close to zero. These results support the interpretation that the matched $M_2$ deterministic estimator is internally consistent for the controlled injection, while the larger errors seen under $M_0$ and $M_1$ are measurement-model effects rather than an offset intrinsic to the fitted $M_2$ parameterization.
+The component masses and light fraction are likewise centered close to zero. These results support the interpretation that the matched $\mtwo$ deterministic estimator is internally consistent for the controlled injection, while the larger errors seen under $\mzero$ and $\mone$ are measurement-model effects rather than an offset intrinsic to the fitted $\mtwo$ parameterization.
 
 \subsection{Supporting Scan-Schedule Dependence}
 
