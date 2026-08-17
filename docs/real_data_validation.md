@@ -1,10 +1,10 @@
 # Real-data validation: status of V6 and V7
 
-`docs/methodology.md` section 11 defines a validation ladder. Steps V0 to V5 are synthetic and are exercised by the test suite. The final two steps involve real Gaia measurements. **Neither has been executed.** This note records exactly why, and what has been built so that each can be run without further development.
+`docs/methodology.md` section 11 defines a validation ladder. Steps V0 to V5 are synthetic and are exercised by the test suite. The final two steps involve real Gaia measurements. **Neither has been executed.** This note records exactly why, and what has been built so that each can be run without overstating current validation.
 
 ## V6 — DR3 catalogue consistency
 
-**Status: blocked on data access, not on implementation.**
+**Status: blocked on data access in the development environment, not on implementation.**
 
 The Gaia archive was unreachable from the environment in which the validation harness was developed, so no DR3 row was retrieved there and **no claim of consistency with real Gaia data is made anywhere in this project.**
 
@@ -36,14 +36,33 @@ Halbwachs et al. (2023) state that partially resolved doubles were filtered upst
 
 **Status: not possible yet. Gaia DR4 has not been released.**
 
-Current Gaia/DR4 sources describe DR4 as expected in **December 2026**. This repository does not assume a specific day. The official expected-content page states that lower-level individual observations are planned, but the released datamodel should be treated as the authority for exact table/product names.
+The official Gaia release scenario currently places DR4 in approximately 2026 (the release-scenario page states not before mid-2026). The exact release date should not be hard-coded here until ESA publishes it.
 
-Until release, this project should avoid hard-coding scientific claims around provisional names such as `epoch_image` or `rvs_epoch_data_double`. The relevant requirement is functional rather than nominal: target-level validation needs the epoch observation times, scan geometry, astrometric measurements or window/image information, calibration metadata, and (for the SB2 application) component-resolved spectroscopy or external SB2 radial velocities.
+The official Gaia DR4 **expected-content** page already provides provisional archive product names. Of direct relevance to this project are:
 
-The DR4 instrument reference has also changed. Rowell et al. (2026, A&A 708, A174) describe the PLSF model deployed in DR4 processing, including drift-scan effects and calibrated dependences on source colour and focal-plane position. Any measurement-level RAA implementation should be checked against those released calibration products rather than treating a fixed Gaussian width as the Gaia instrument model.
+- `epoch_astrometry` — individual astrometric measurements for sources in the main astrometric processing;
+- `epoch_image` — preprocessed, sky-projected individual CCD sample values;
+- `rvs_epoch_data_double` — FoV-transit-level information for double-lined RVS transits;
+- planned non-single-star, mass, and multiplicity products.
+
+These names are therefore not guesses. However, the same official page states that the content is under development and changes can be expected, while the detailed DR4 processing documentation and final data model are still forthcoming. Code that ingests DR4 should consequently isolate these interfaces behind adapters and verify them against the released schema rather than assuming today's expected table layout is final.
+
+This creates the largest remaining literature/implementation blind spot. The public DR4 material reviewed for this project does **not establish** whether the eventual DPAC NSS orbit likelihood internally uses a physical marginal-resolution PLSF/image response for close binaries. Until the processing papers and documentation are available, the manuscript should state neither that DPAC has such an inference nor that it does not.
+
+### Why `epoch_image` matters beyond scalar epoch astrometry
+
+The current single-coordinate surrogate is intentionally invalid once the blended profile becomes genuinely multi-peaked. If DR4 `epoch_image` provides the expected CCD sample information at useful fidelity, an image/sample-domain likelihood becomes the natural extension:
+
+`orbit -> component positions + fluxes -> PLSF/profile samples -> CCD data`.
+
+That would avoid assigning one astrometric coordinate to a transit whose brightness profile has multiple competing maxima. It is therefore a scientifically stronger long-term endpoint than extending the present one-coordinate surrogate into the resolved regime.
+
+The DR4 instrument reference has also changed. Rowell et al. (2026, A&A 708, A174) describe the PLSF model deployed in DR4 processing, including drift-scan effects and calibrated dependences on source colour and focal-plane position. Any measurement-level implementation should be checked against released calibration products rather than treating a fixed Gaussian width as the Gaia instrument model.
 
 ## What can be claimed today
 
-Every headline quantitative result in the manuscript is synthetic. The equal-width surrogate has been shown to reproduce the published `gaiamock` blended response over their common validity domain, and the inference machinery has been shown to recover controlled injections. Penoyre (2026) supplies a broader published treatment of blended-source position/resolvability, so the present constant-width model should be viewed as a restricted baseline rather than a new resolvability theory.
+Every headline quantitative result in the manuscript is synthetic. The equal-width surrogate reproduces the public `gaiamock` blended response over their common validity domain, but the deeper source audit also shows that `gaiamock` already contains a response-aware stellar astrometry-plus-primary-RV **forward predictor**. The measurement response and that forward combination are therefore not novelty claims.
+
+Likewise, Liu et al. (2024) already used a partially resolved Gaia response inside orbital inference for the binary asteroid (4337) Arecibo. What remains under investigation is the narrower stellar inverse problem and, more importantly, the response-fidelity question: whether marginal-resolution model error biases individual stellar masses/parallax and how accurate the response must be for calibrated inference.
 
 Neither the `gaiamock` benchmark nor synthetic recovery is a test against real Gaia measurements. The project should continue to say this plainly until V6 and, ultimately, V7 are actually executed.
