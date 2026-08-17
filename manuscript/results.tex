@@ -34,14 +34,26 @@ $M_2$ oriented & 207.2 & $+0.070$ & $-0.014$ & $+0.083$ & $+0.053$\\
 \tablecomments{0.92\textwidth}{Biases are medians over ten paired noise realizations. $\delta x$ is defined by Equation~(\ref{eq:fracbias}). The response widths are research-surrogate scales, not Gaia calibration values.}
 \end{table}
 
-Figure~\ref{fig:responsemass} shows how the primary-mass bias changes with separation for this same light fraction and elongation. The coherent photocentre bias grows rapidly with $\aalpha$, whereas the response-aware models remain close to zero over the sampled range. The secondary-mass behavior is qualitatively similar.
+The coherent primary-mass bias also grows with angular scale. At $\betag=0.25$ and $\psfelong=1.5$, the medians in Table~\ref{tab:massseparation} show that the photocentre bias steepens from $-0.23\%$ at $\aalpha=0.4$ to $-1.26\%$ at $\aalpha=1$, whereas both response-aware models remain close to zero. The secondary-mass behavior is qualitatively similar.
 
-\begin{figure}
-\centering
-\includegraphics[width=0.82\textwidth]{figures/response_fidelity_m1_bias}
-\caption{Median fractional bias in the primary mass as a function of $\aalpha$ for $\betag=0.25$ and $\psfelong=1.5$. The same ten noise realizations are fitted with $M_0$, $M_1$, and $M_2$. The plotted angular scale is dimensionless and is not a Gaia resolution threshold.}
-\label{fig:responsemass}
-\end{figure}
+\begin{table}
+\begin{center}
+\caption{Median Primary-Mass Bias versus Angular Scale}
+\label{tab:massseparation}
+\begin{tabular}{rrrr}
+\hline\noalign{\smallskip}
+$\aalpha$ & $M_0$ & $M_1$ & $M_2$\\
+ & \multicolumn{3}{c}{$\delta M_1$ (\%)}\\
+\hline\noalign{\smallskip}
+0.40 & $-0.232$ & $-0.063$ & $-0.057$\\
+0.60 & $-0.361$ & $+0.013$ & $+0.030$\\
+0.80 & $-0.704$ & $+0.010$ & $+0.053$\\
+1.00 & $-1.255$ & $-0.026$ & $+0.070$\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+\tablecomments{0.80\textwidth}{All rows use $\betag=0.25$ and $\psfelong=1.5$ and are medians over ten paired noise realizations.}
+\end{table}
 
 The separation dependence of the likelihood mismatch is similarly steep. For $\betag=0.25$ and $\psfelong=1.5$, the median $\Delta\chi^2_{0,2}$ increases from 2.56 at $\aalpha=0.4$ to 46.43, 302.01, and 1272.68 at $\aalpha=0.6$, 0.8, and 1.0, respectively. The corresponding values for $\psfelong=3$ are 2.17, 46.15, 306.75, and 1301.43.
 
@@ -65,14 +77,7 @@ The light fraction is more sensitive than the masses. For example, at $\aalpha=1
 
 \subsection{External Orbit Information Controls the Mass Bias}
 
-The external-information control demonstrates why $M_1$ can look sufficient for the masses in the strongly constrained reference experiment. Figure~\ref{fig:externalmass} and Table~\ref{tab:external} show the effect of weakening only the resolved-astrometry and SB2 precision at the fixed response point in Equation~(\ref{eq:controlpoint}).
-
-\begin{figure}
-\centering
-\includegraphics[width=0.82\textwidth]{figures/external_information_m1_bias}
-\caption{Median primary-mass bias at the fixed difficult response point as the independent resolved-astrometry/SB2 constraints are weakened. Gaia-like sampling and noise are unchanged. The labels strong, medium, and weak refer only to the controlled uncertainties defined in Section~\ref{sect:experiments}; they are not universal observational-quality categories.}
-\label{fig:externalmass}
-\end{figure}
+The external-information control demonstrates why $M_1$ can look sufficient for the masses in the strongly constrained reference experiment. Table~\ref{tab:external} shows the effect of weakening only the resolved-astrometry and SB2 precision at the fixed response point in Equation~(\ref{eq:controlpoint}).
 
 \begin{table}
 \begin{center}
@@ -106,20 +111,27 @@ A useful consequence is that residual fit quality and physical bias do not move 
 
 \subsection{The 100-Seed Matched-$M_2$ Solution Recenters on the Truth}
 
-The high-statistics matched-model control removes the ambiguity associated with the small ten-seed offsets. Over 100 independent $M_2\rightarrow M_2$ realizations at the central point, the median fractional parallax bias is
-\begin{equation}
-+0.0167\%,
-\end{equation}
-with 16th and 84th percentiles of $-0.1274\%$ and $+0.1779\%$. Fifty-three per cent of the realizations have positive parallax error. The mean is $+0.0214\%$ and the standard deviation is $0.1509\%$. There is therefore no evidence in this control for a coherent positive parallax offset of the size suggested by the original ten-seed median.
+The high-statistics matched-model control removes the ambiguity associated with the small ten-seed offsets. Over 100 independent $M_2\rightarrow M_2$ realizations at the central point, the median fractional parallax bias is $+0.0167\%$, with 16th and 84th percentiles of $-0.1274\%$ and $+0.1779\%$. Fifty-three per cent of the realizations have positive parallax error. The mean is $+0.0214\%$ and the standard deviation is $0.1509\%$. There is therefore no evidence in this control for a coherent positive parallax offset of the size suggested by the original ten-seed median.
 
-\begin{figure}
-\centering
-\includegraphics[width=0.82\textwidth]{figures/matched_m2_parallax_bias}
-\caption{Distribution of fractional parallax bias over 100 independent matched $M_2\rightarrow M_2$ realizations at the central response point. The dashed line marks zero bias. The distribution spans both signs and is centered close to zero.}
-\label{fig:m2parallax}
-\end{figure}
+\begin{table}
+\begin{center}
+\caption{High-Statistics Matched-$M_2$ Validation}
+\label{tab:m2control}
+\begin{tabular}{lrrrrr}
+\hline\noalign{\smallskip}
+Quantity & Median & Mean & $Q_{16}$ & $Q_{84}$ & Std. dev.\\
+\hline\noalign{\smallskip}
+$\delta M_1$ (\%) & $-0.0348$ & $-0.0494$ & $-0.3416$ & $+0.2626$ & 0.2779\\
+$\delta M_2$ (\%) & $-0.0234$ & $-0.0318$ & $-0.4303$ & $+0.3839$ & 0.3663\\
+$\delta\varpi$ (\%) & $+0.0167$ & $+0.0214$ & $-0.1274$ & $+0.1779$ & 0.1509\\
+$\delta\betag$ (\%) & $-0.0189$ & $-0.0123$ & $-0.3286$ & $+0.2808$ & 0.3349\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+\tablecomments{0.92\textwidth}{One hundred independent matched $M_2\rightarrow M_2$ realizations at the central response point with strong external constraints. The fraction of positive parallax errors is 0.53 and the median reduced $\chi^2$ is 0.982.}
+\end{table}
 
-The component masses are similarly centered: the median fractional biases are $-0.0348\%$ for $M_1$ and $-0.0234\%$ for $M_2$. The median light-fraction bias is $-0.0189\%$. The median reduced chi-square is 0.982. These results support the interpretation that the matched $M_2$ deterministic estimator is internally consistent for the controlled injection, while the larger errors seen under $M_0$ and $M_1$ are measurement-model effects rather than an offset intrinsic to the fitted $M_2$ parameterization.
+The component masses and light fraction are likewise centered close to zero. These results support the interpretation that the matched $M_2$ deterministic estimator is internally consistent for the controlled injection, while the larger errors seen under $M_0$ and $M_1$ are measurement-model effects rather than an offset intrinsic to the fitted $M_2$ parameterization.
 
 \subsection{Supporting Scan-Schedule Dependence}
 
