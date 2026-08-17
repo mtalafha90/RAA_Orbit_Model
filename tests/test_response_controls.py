@@ -43,8 +43,11 @@ def _schedule(n=36):
 def test_truth_at_response_point_sets_requested_angular_scale_and_light_fraction():
     truth = truth_at_response_point(_truth(), alpha_mas=50.0, a_over_alpha=1.0, beta_g=0.25)
     assert truth.beta_g == 0.25
-    assert truth.a_rel_au * truth.parallax_mas / 50.0 == np.testing.assert_allclose(
-        truth.a_rel_au * truth.parallax_mas / 50.0, 1.0, rtol=0, atol=1e-12
+    np.testing.assert_allclose(
+        truth.a_rel_au * truth.parallax_mas / 50.0,
+        1.0,
+        rtol=0,
+        atol=1e-12,
     )
 
 
