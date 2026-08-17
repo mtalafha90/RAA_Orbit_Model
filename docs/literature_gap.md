@@ -1,113 +1,120 @@
 # Literature gap investigation
 
-## Scope
+## Scope and standard of evidence
 
-This note records the literature status of the proposed RAA Orbit Model. It deliberately separates established results from the **candidate** research gap. It does not claim priority.
+This note records the literature status of the proposed RAA Orbit Model as of 2026-08-17. Its purpose is to identify a defensible research gap, not to protect an earlier novelty claim. Claims are separated into **established prior art**, a **surviving candidate gap**, and **open verification tasks**. No priority claim is made, and the manuscript should not use "first", "novel", or "unprecedented" unless a later exhaustive review justifies it.
 
-## Established capabilities
+## Established prior art
 
-The following are already present in the literature and therefore are **not** claimed as novel contributions here.
+### Combined astrometry, relative astrometry, and spectroscopy are established
 
-### Joint astrometry and spectroscopy
+BINARYS (Leclerc et al. 2023) combines Hipparcos/Gaia absolute astrometry, relative astrometry, and radial velocities, and its RV interface can distinguish measurements of the two components. Therefore, "Gaia + relative astrometry + SB2" is not itself a gap.
 
-BINARYS (Leclerc et al. 2023) combines Hipparcos/Gaia absolute astrometry, relative astrometry, and radial velocities. Its RV interface can identify measurements of either component, allowing treatment of SB1 and SB2 systems. Therefore, “relative astrometry + SB2 + Gaia” is not itself a gap.
+orvara (Brandt et al. 2021) likewise fits combinations of radial velocity, absolute astrometry, and relative astrometry and performs posterior inference. Its Gaia information is based on Hipparcos--Gaia absolute astrometry / scan information rather than a marginal-resolution image-response likelihood. It is nevertheless important prior art for dynamical-mass inference from heterogeneous orbit data.
 
-### Gaia DR3 astrometric binaries
+### Gaia DR3 orbital processing did not target partially resolved doubles
 
-The Gaia DR3 non-single-star astrometric processing (Halbwachs et al. 2023) fits Keplerian orbital solutions, but partially resolved double stars were removed upstream from the astrometric-binary processing. This is direct evidence that the difficult transition regime was not part of the published DR3 orbital pipeline.
+The Gaia DR3 non-single-star astrometric processing (Halbwachs et al. 2023) fits Keplerian orbital solutions, but partially resolved double stars were discarded in a preliminary treatment. This supports the relevance of the transition regime, but it is not evidence that no external method has treated that regime.
 
-### Scan-angle-dependent close-pair systematics
+### Scan-angle-dependent close-pair systematics are established
 
-Holl et al. (2023) showed that close source structure can produce scan-angle-dependent biases in Gaia image parameter determination and derived time series. They provide an analytical approximation, based on Lindegren (2022), for the along-scan bias of a binary as a function of projected along-scan separation and flux ratio.
+Holl et al. (2023) showed that close source structure can generate scan-angle-dependent image-parameter biases and spurious time-series signals in Gaia. The existence of scan-angle-dependent astrometric bias is therefore not a new result of this project.
 
-### Scan-angle- and resolution-aware measurement response
+### A nonlinear, resolution-aware along-scan response is already published
 
-**This is published, openly implemented, and must not be claimed as novel by this project.**
+El-Badry et al. (2024) released `gaiamock`, whose `al_bias_binary` predicts the one-dimensional measured position from the peak of the blended along-scan flux profile. The response is nonlinear in projected separation and light ratio and tends to the ordinary flux-weighted photocentre at small separation.
 
-El-Badry et al. (2024) released `gaiamock`, which contains `al_bias_binary`. Its docstring states that it "predicts the epoch astrometry for a binary assuming that the 1D centroid is at the peak of the combined AL flux profile, following the model from Lindegren+2022". The measured along-scan coordinate is an explicitly nonlinear function of projected along-scan separation and light ratio, reducing to the flux-weighted photocentre only in the small-separation limit. That is precisely the physical statement this project set out to make.
+The equal-width Gaussian response used by this project is mathematically the same response family. `docs/gaiamock_benchmark.md` records a direct source-level and numerical comparison. The two implementations agree to the published solver tolerance over their common single-peak domain. The measurement-response idea itself must therefore not be claimed as new.
 
-The published routine solves `x = f xi / (f + exp(xi^2/2 - xi x))`, which is the stationary-point condition for the maximum of an equal-width two-Gaussian blend. It is therefore the *same model* as this project's surrogate. `docs/gaiamock_benchmark.md` records the numerical comparison: the two agree to the published solver's own convergence tolerance everywhere both are valid.
+### The blended-source/resolvability mathematics is now broader in the literature
 
-Their stated purpose was catalogue selection-function modelling rather than a target-level joint posterior using independent resolved astrometry and both SB2 velocity curves.
+Penoyre (2026), *RAS Techniques and Instruments* 5, rzaf062, derives analytical expressions and numerical recipes for the effective position and resolvability of blended Gaussian point sources. Importantly for Gaia, the paper treats an elongated PSF and shows that the problem reduces to a one-dimensional blend with an **orientation-dependent effective width**. A correction to several signs in the published equations appeared as rzag016 on 2026-03-19 and the corrected article should be used.
 
-### The published response is used for simulation, not for inference
+Consequently, the constant-width, equal-profile surrogate in this repository should be presented as a **controlled restricted case** of a more general published blended-source framework. The exact equal-width mode-splitting calculation remains useful for code validation and for defining the domain of the frozen synthetic experiments, but it is not a claim to general resolvability theory.
 
-Verified by reading the `gaiamock` source: `al_bias_binary` is called only by the prediction functions `predict_astrometry_luminous_binary` and `predict_astrometry_and_rvs_simultaneously`. **No fitting routine uses it.** `fit_5par_solution_only`, `check_7par`, `check_9par`, `fit_orbital_solution_nonlinear`, `fit_full_astrometric_cascade` and `mcmc_fit_with_thiele_innes_elements` all fit a plain photocentre model on a Thiele-Innes design matrix.
+### Bayesian Gaia epoch astrometry + radial-velocity inference is established
 
-That is a deliberate design choice, because `gaiamock` emulates Gaia's own pipeline. The published state of the art is therefore: **generate with a resolution-aware response, fit with a photocentre model.**
+Baycroft, Faria & Delisle (2026), arXiv:2606.24132, present open-source Bayesian analysis of Gaia epoch astrometry, both alone and simultaneously with radial velocities, using `kima` and diffusive nested sampling. Thus neither "Bayesian Gaia epoch astrometry" nor "Gaia epoch astrometry + RV joint inference" is a remaining gap.
 
-### Gaia PSF/LSF calibration
+The source reviewed for this project establishes those capabilities. It does **not by itself establish** the more specific combination sought here: a marginal-resolution blended-source measurement response fitted inside the likelihood together with independent resolved relative astrometry and both component RV curves. That narrower combination remains a search target rather than a confirmed priority claim.
 
-Gaia image parameter determination rests on calibrated PSF/LSF models; Rowell et al. (2021) document the EDR3 PSF/LSF calibration. Therefore a final image-level RAA model must not treat a Gaussian profile as an exact Gaia instrument model.
+### Gaia DR4 PSF modelling is substantially more realistic than the present surrogate
 
-## Candidate gap, as revised
+Rowell et al. (2026), *A&A* 708, A174, describe the PSF model deployed in the processing of Gaia DR4. It includes drift-scan effects and calibrated dependences on source colour and focal-plane position. This supersedes Rowell et al. (2021) as the primary instrument-model reference for DR4-era motivation.
 
-The original wording of this section listed the resolution-aware measurement response itself as one of the missing ingredients. **That was wrong**, and the revision below is the direct result of finding `al_bias_binary` in `gaiamock`. The claim is now considerably narrower.
+The present fixed Gaussian width therefore cannot be interpreted as a physical Gaia LSF/PSF width. The next instrument-facing model must be driven by the released DR4 measurement/calibration products rather than by tuning the surrogate transition scale.
 
-What is **not** a gap:
+## Literature capability matrix
 
-- combining Gaia or Hipparcos astrometry with relative astrometry and radial velocities (BINARYS);
-- a scan-angle- and separation-dependent Gaia along-scan response (El-Badry et al. 2024, following Lindegren 2022);
-- demonstrating that fitting a photocentre model to resolution-aware data produces biased or spurious astrometric solutions — El-Badry et al. (2024) show this at population level.
+The table below states only capabilities supported by the sources reviewed; a blank or qualified entry is not evidence of absence.
 
-What we did **not find** published, after the searches carried out for this project:
+| Work | Gaia/Hipparcos astrometry in orbit inference | Independent relative astrometry | RVs / SB2 | Resolution-aware blended response | Response fitted inside target likelihood? | Main role |
+|---|---|---|---|---|---|---|
+| Brandt et al. 2021, orvara | yes | yes | yes | not the focus | no evidence in reviewed source | combined dynamical orbit inference |
+| Leclerc et al. 2023, BINARYS | yes | yes | yes, including component-labelled RVs | not the focus | no evidence in reviewed source | combined binary orbit inference |
+| Holl et al. 2023 | Gaia image/scan diagnostics | no | no | analytical scan-angle bias | not a target orbit likelihood | close-pair systematics |
+| El-Badry et al. 2024, gaiamock | simulated Gaia epochs and Gaia-like fitting | no independent resolved orbit data in the target fit | RV simulation capability | yes | **no: response is generative; fit path is photocentre-based** | catalogue selection-function simulation |
+| Penoyre 2026 | repeated astrometric observations analytically | no orbit combination | no | **yes, including elongated/orientation-dependent Gaussian PSF** | no joint binary-orbit likelihood | blended-source position/resolvability theory |
+| Baycroft et al. 2026, kima | **yes, epoch astrometry** | not established by the source reviewed here | **yes, joint RV** | not established by the source reviewed here | Bayesian orbit likelihood, but resolution-aware blending not established | Gaia epoch + RV posterior inference |
+| This project, candidate target | Gaia-like epoch AL | **yes** | **both SB2 curves** | **yes** | **yes** | measurement-aware target-level combined orbit inference |
 
-1. the resolution-aware response used as the **inference** model rather than only as a generative one;
-2. that inference performed at **target level**, jointly with independent resolved relative astrometry and **both** SB2 velocity curves;
-3. propagation of the resulting measurement-model choice to **component masses** specifically, as opposed to parallax and proper motion.
+## Surviving candidate gap
 
-This is a **methodological** claim about where an existing measurement model is applied, not a claim to new measurement physics. It remains a candidate: no priority claim is made, and the manuscript must not use "first", "novel", or "unprecedented".
+After the 2026 literature update, the scientifically defensible question is no longer "can a scan-angle-dependent blended response be modelled?" and no longer "can Gaia epoch astrometry be fitted jointly with RVs?" Both are established.
 
-## Verification status of this note
+The **surviving candidate gap** is the intersection of capabilities:
 
-The `gaiamock` findings above were verified by reading the source directly at <https://github.com/kareemelbadry/gaiamock>, and are reproduced for comparison in `src/raa_orbit_model/gaiamock_reference.py`.
+1. use a resolution-aware blended-source response as the **fitted measurement model**, not merely as the generator of synthetic Gaia data;
+2. perform that inference at **target level** with Gaia epoch along-scan data;
+3. constrain the same physical orbit simultaneously with **independent resolved relative astrometry**;
+4. include **both component RV curves of an SB2** rather than a single host-star RV time series;
+5. propagate measurement-model uncertainty/misspecification into **individual component masses, parallax, and light ratio**.
 
-The following leads surfaced during the literature review but **could not be read**, because scholarly domains were unreachable from the working environment. They must be checked against the published papers before citation:
+The project should be presented as testing whether this particular intersection is scientifically useful. It should not claim that any one ingredient is individually new.
 
-- **Penoyre, Z. (2025/26), "The position and resolvability of blended point sources", RAS Techniques and Instruments**, DOI 10.1093/rasti/rzaf062, arXiv:2512.05047. Reportedly derives analytic blended-source positions for an *elongated* Gaia-like PSF, including a resolvability criterion and an orientation-dependent effective width. If accurate, this project's `critical_blended_separation_sigma` is the equal-width special case of a published general result, and the constant surrogate width `sigma` should become an orientation-dependent `sigma_eff(psi)`. **Highest-priority check.**
-- **Baycroft, Faria & Delisle (2026)**, `kima` with Gaia epoch astrometry and RV joint Bayesian fitting, reportedly photocentre-based. Closest competitor on the inference side.
-- **Harrison et al. (2023), "SEAPipe: the source environment analysis pipeline", A&A 679, A158.** If SEAPipe feeds DR4, the statement that partially resolved doubles are excluded upstream may no longer hold for DR4 and must be hedged.
-- **Rowell et al. (2026)**, DR4 PSF drift-scan modelling, arXiv:2602.20906, which would supersede Rowell et al. (2021) as the PSF anchor for DR4.
-- The **`Lindegren (2022)`** reference credited in the `al_bias_binary` docstring is **unresolved**. Two independent searches returned contradictory candidates. Settle it from the reference list of Holl et al. (2023), A&A 674, A25.
-- **Gaia DR4 is not released.** Expected 2 December 2026. Product names in the DR4 section below (`epoch_astrometry`, `epoch_image`, `rvs_epoch_data_double`) should be checked against the released DR4 datamodel; searches returned conflicting evidence on whether `epoch_image` exists under that name, and the RVS double-lined product may be named `EPOCH_PARAMETERS_RVS_DOUBLE`.
+### Strongest current wording for the paper
 
-## Why the transition regime is distinct
+> We investigate a candidate inference gap at the intersection of existing methods: fitting a published resolution-aware blended-source astrometric response at target level while simultaneously constraining the orbit with independent resolved relative astrometry and both SB2 velocity curves, and quantifying how measurement-model assumptions propagate into component masses.
 
-For a fully unresolved binary, the photocentre relative to the barycentre is
+### Claims that should not appear
 
-\[
-\mathbf r_{\rm ph}=(\beta-B)\,\mathbf r,
-\]
+- "first resolution-aware Gaia binary model";
+- "new Gaia blended-source response";
+- "first joint Gaia epoch astrometry and RV fit";
+- "new resolvability criterion" without explicitly restricting it to the equal-width validation case and acknowledging Penoyre (2026);
+- any translation of the surrogate `sigma` or `a/sigma` values into Gaia angular-resolution thresholds.
 
-where
+## Why the present experiments are still useful
 
-\[
-B=\frac{M_2}{M_1+M_2},\qquad
-\beta=\frac{F_2}{F_1+F_2},
-\]
+The 23,000-fit native full-sky experiment and the 11,040-fit matched-transit control remain valid as **baseline equal-width synthetic experiments**. They demonstrate how a deliberately controlled measurement-model mismatch propagates through the joint orbit fit. They do not validate the response against real Gaia observations and should not be rewritten as if they used the newer absolute-astrometry, posterior-sampling, or unequal-width extensions added later to the code.
 
-and \(\mathbf r=\mathbf r_2-\mathbf r_1\).
+The strongest next experiment is therefore not another ordinary sky grid. It is a **response-misspecification study**: inject a more realistic profile family (at minimum unequal and/or orientation-dependent widths motivated by Penoyre 2026 and Rowell et al. 2026), fit with successively simpler response models, and determine when the inference-side advantage survives model error. This directly tests whether the candidate gap has practical value rather than only an advantage under matched injection/recovery.
 
-For Gaia observation angle \(\psi\), the projected along-scan component of the true relative separation is
+## Remaining verification tasks
 
-\[
-\Delta\eta = \Delta\alpha^*\sin\psi + \Delta\delta\cos\psi,
-\]
+The gap is still a candidate. Before submission, carry out citation-chain searches around the following topics and record any counterexamples:
 
-up to the adopted scan-angle convention.
+- target-level Gaia epoch astrometry + **resolved relative astrometry** + spectroscopy after 2024;
+- SB2-specific Gaia epoch orbit inference;
+- marginally resolved / blended Gaia epoch likelihoods rather than generative bias models;
+- methods using Penoyre's blended-source response inside an orbital posterior;
+- DR4-oriented methods that fit image/window-level data for binaries.
 
-In the marginal-resolution regime, the effective measured location can depend nonlinearly on \(\Delta\eta\) and the flux ratio. Thus a single photocentre orbit is no longer a complete observation model.
+If a paper is found that already combines all five capabilities above, the project should pivot to a narrower technical gap, such as robust response misspecification, colour-dependent component profiles, or component-mass bias under an instrument-calibrated likelihood.
 
-## DR4 motivation
+## DR4 motivation and real-data status
 
-The official Gaia DR4 expected-content documentation lists planned epoch-level products including `epoch_astrometry`, `epoch_image`, and double-lined epoch spectroscopy (`rvs_epoch_data_double`). These products are planned and explicitly subject to processing/validation changes. If released as expected, they would allow the candidate model to be tested much closer to the measurement level than is possible with DR3 catalogue products.
+Gaia DR4 is expected in **December 2026**. The official DR4 expected-content page states that lower-level individual observations will be released, subject to processing and validation. Exact product names should be taken from the released datamodel rather than guessed in advance.
 
-Until then, the resolution-aware component of this project must be validated with synthetic/injection tests and with catalogue-level consistency tests only. It must not be presented as empirically validated against unavailable Gaia epoch images.
+Until suitable epoch/image products are public, the resolution-aware inference must be described as synthetic/methodological. DR3 catalogue diagnostics such as `ipd_frac_multi_peak` and `ipd_gof_harmonic_amplitude` can provide qualitative consistency checks, but they are not direct measurements of this surrogate's mode count or likelihood residuals.
 
-## References
+## References used for the gap assessment
 
-- Leclerc, A. et al. (2023), “Combining Hipparcos and Gaia data for the study of binaries: The BINARYS tool”, *A&A*, 672, A82. DOI: 10.1051/0004-6361/202244144.
-- Halbwachs, J.-L. et al. (2023), “Gaia Data Release 3: Astrometric binary star processing”, *A&A*, 674, A9. arXiv:2206.05726.
-- Holl, B. et al. (2023), “Gaia Data Release 3: Gaia scan-angle-dependent signals and spurious periods”, *A&A*, 674, A25. DOI: 10.1051/0004-6361/202245353.
-- El-Badry, K. et al. (2024), Gaia astrometric-orbit catalogue selection-function generative modelling, *Open Journal of Astrophysics*, 7. DOI: 10.33232/001c.125461. arXiv:2411.00088. Source: <https://github.com/kareemelbadry/gaiamock>. **Contains `al_bias_binary`, the published scan-angle- and separation-dependent along-scan response benchmarked in `docs/gaiamock_benchmark.md`.**
-- Rowell, N. et al. (2021), “Gaia Early Data Release 3: Point and line spread function modelling and calibration”, *A&A*, 649, A11. DOI: 10.1051/0004-6361/202039448.
+- Brandt, T. D. et al. (2021), "orvara: An Efficient Code to Fit Orbits using Radial Velocity, Absolute, and/or Relative Astrometry", *AJ* / arXiv:2105.11671.
+- Leclerc, A. et al. (2023), "Combining Hipparcos and Gaia data for the study of binaries: the BINARYS tool", *A&A* 672, A82, DOI 10.1051/0004-6361/202244144.
+- Halbwachs, J.-L. et al. (2023), "Gaia Data Release 3: Astrometric binary star processing", *A&A* 674, A9, DOI 10.1051/0004-6361/202243969.
+- Holl, B. et al. (2023), "Gaia Data Release 3: Gaia scan-angle-dependent signals and spurious periods", *A&A* 674, A25, DOI 10.1051/0004-6361/202245353.
+- El-Badry, K. et al. (2024), "A generative model for Gaia astrometric orbit catalogs...", *Open Journal of Astrophysics* 7, DOI 10.33232/001c.125461, arXiv:2411.00088.
+- Penoyre, Z. (2026), "The position and resolvability of blended point sources", *RAS Techniques and Instruments* 5, rzaf062, DOI 10.1093/rasti/rzaf062; corrected by rzag016, DOI 10.1093/rasti/rzag016.
+- Baycroft, T. A., Faria, J. P. & Delisle, J.-B. (2026), "Bayesian analysis of Gaia epoch astrometry and radial velocities with kima", arXiv:2606.24132.
+- Rowell, N. et al. (2026), "Gaia Data Release 4: Modelling of drift-scan related effects in Gaia's point spread function", *A&A* 708, A174, DOI 10.1051/0004-6361/202558618.
