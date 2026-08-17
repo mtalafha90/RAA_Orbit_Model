@@ -1,0 +1,4 @@
+experiment,fit_records,seeds,fitted_models,success_records,scientific_valid_records,multi_peak_injection_epochs,multi_peak_final_predictions,gaia_transits_used
+response_fidelity_720,720,10,3,720,720,0,0,87
+external_information_control,270,30,3,270,270,0,0,87
+matched_m2_100seed,100,100,1,100,100,0,0,87
