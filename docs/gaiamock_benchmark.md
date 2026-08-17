@@ -6,6 +6,8 @@ El-Badry et al. (2024), *Open Journal of Astrophysics* **7**, DOI 10.33232/001c.
 
 That is the same physical statement this project makes about its own baseline along-scan surrogate. A scan-angle- and separation-dependent Gaia response is therefore **already published and openly implemented**, and this project must not claim it as new. See `docs/literature_gap.md` for the surviving candidate inference gap.
 
+A deeper source audit also found `predict_astrometry_and_rvs_simultaneously(...)` in the public `gaiamock.py`. That routine uses `al_bias_binary` for the Gaia-like astrometric prediction and computes a primary-star RV curve for the same stellar binary. Therefore "resolution-aware stellar Gaia + RV forward modelling" is also **not** an available novelty claim. In the audited source this is a forward-prediction routine; we did not identify a corresponding inverse posterior that simultaneously fits response-aware Gaia epochs, independent resolved relative astrometry, and both SB2 RV curves. This is an observation about the inspected public code path, not proof of absence elsewhere.
+
 The purpose of this benchmark is narrower: establish that the baseline implementation used in this repository is a correct reimplementation of the published equal-width response rather than an unrelated in-house construction.
 
 ## The two implementations are the same equal-width model
@@ -42,13 +44,13 @@ With `sigma = u = 90 mas` and `B = 0.4`, offsets in mas:
 
 | `beta_G` | `d / u` | this project | gaiamock | relative difference |
 |---|---|---|---|---|
-| 0.10 | 0.20 | −5.42585 | −5.42587 | < 0.01% |
-| 0.10 | 1.00 | −29.94903 | −29.94912 | < 0.01% |
-| 0.10 | 2.50 | −88.87230 | −88.87234 | < 0.01% |
-| 0.25 | 0.50 | −7.29373 | −7.29377 | < 0.01% |
-| 0.25 | 2.00 | −62.50065 | −62.50076 | < 0.01% |
+| 0.10 | 0.20 | -5.42585 | -5.42587 | < 0.01% |
+| 0.10 | 1.00 | -29.94903 | -29.94912 | < 0.01% |
+| 0.10 | 2.50 | -88.87230 | -88.87234 | < 0.01% |
+| 0.25 | 0.50 | -7.29373 | -7.29377 | < 0.01% |
+| 0.25 | 2.00 | -62.50065 | -62.50076 | < 0.01% |
 | 0.45 | 1.00 | +3.02715 | +3.02712 | < 0.01% |
-| 0.45 | 2.00 | −37.11342 | −37.11358 | < 0.01% |
+| 0.45 | 2.00 | -37.11342 | -37.11358 | < 0.01% |
 
 Agreement is at the level of the published solver's own convergence tolerance (`tol = 1e-6`) everywhere both models are valid. **The baseline surrogate reproduces the published equal-width response.**
 
@@ -80,7 +82,7 @@ It supports the following statements:
 2. its baseline numerical solver avoids `gaiamock`'s small-separation linearisation and uses the actual equal-width mode boundary instead of the `(3-f)` implementation cut;
 3. the frozen experiments are therefore grounded in a published response family rather than in an arbitrary coordinate formula.
 
-It does **not** support novelty of the response or resolvability calculation. It also does not show that an equal-width Gaussian is an accurate Gaia PLSF. Penoyre (2026) already motivates orientation-dependent effective width even in an idealized Gaussian treatment, and Rowell et al. (2026) describe the substantially richer DR4 PLSF.
+It does **not** support novelty of the response, of response-aware astrometry+RV forward prediction, or of general resolvability theory. It also does not show that an equal-width Gaussian is an accurate Gaia PLSF. Penoyre (2026) already motivates orientation-dependent effective width even in an idealized Gaussian treatment, and Rowell et al. (2026) describe the substantially richer DR4 PLSF.
 
 ## Reproducing this
 
