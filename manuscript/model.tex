@@ -67,7 +67,7 @@ This convention satisfies barycentric momentum balance,
 M_1(RV_1-\gamma)+M_2(RV_2-\gamma)=0.
 \end{equation}
 
-\subsection{Photocentre Model $M_0$}
+\subsection{Photocentre Model $\mzero$}
 
 Define the secondary mass fraction and Gaia-band light fraction as
 \begin{equation}
@@ -84,9 +84,9 @@ For directional Gaia scan angle $\psi$, defined with $0^\circ$ toward North and 
 \Delta\eta=\Delta\alpha^\ast\sin\psi+\Delta\delta\cos\psi.
 \label{eq:alproj}
 \end{equation}
-Model $M_0$ therefore assigns the orbital along-scan displacement $(\betag-B)\Delta\eta$.
+Model $\mzero$ therefore assigns the orbital along-scan displacement $(\betag-B)\Delta\eta$.
 
-\subsection{Equal-Width Blended Response $M_1$}
+\subsection{Equal-Width Blended Response $\mone$}
 
 The first resolution-aware model represents the one-dimensional light profile as
 \begin{equation}
@@ -106,7 +106,7 @@ The equal-width mixture has an exact single-to-double-mode boundary. For $F_1=1-
 \end{equation}
 Equation~(\ref{eq:scrit}) is used only as a validity criterion for this restricted equal-width profile. It is not a calibrated Gaia angular-resolution threshold.
 
-\subsection{Orientation-Dependent Response $M_2$}
+\subsection{Orientation-Dependent Response $\mtwo$}
 
 To test response fidelity rather than matched-model recovery alone, the injected model is generalized using the elongated-Gaussian treatment of \citet{Penoyre2026}. Let $\alpha$ denote the narrow/along-axis width and $\beta_{\rm PSF}\geq\alpha$ the long/across-axis width of the idealized Gaussian. If $\phi$ is the angle between the binary separation vector and the scan axis, the effective one-dimensional width is
 \begin{equation}
@@ -127,28 +127,28 @@ together with the same light-ratio-dependent critical value as the equal-width o
 \begin{equation}
 \beta_{\rm PSF}\rightarrow\infty,
 \end{equation}
-the implementation is regression-tested to recover $M_1$ exactly. This is the appropriate limiting connection to the effectively unconstrained across-scan assumption of the one-dimensional response; a circular Gaussian with $\beta_{\rm PSF}=\alpha$ is not identified with $M_1$.
+the implementation is regression-tested to recover $\mone$ exactly. This is the appropriate limiting connection to the effectively unconstrained across-scan assumption of the one-dimensional response; a circular Gaussian with $\beta_{\rm PSF}=\alpha$ is not identified with $\mone$.
 
 Neither $\alpha$ nor $\beta_{\rm PSF}$ is a calibrated Gaia PLSF width. The finite-elongation model remains an idealized research surrogate. Gaia's actual PLSF contains additional time-, colour-, focal-plane-, window-, and drift-scan dependences \citep{Rowell2021,Rowell2026}.
 
 \subsection{Single-Peak Validity}
 
-A one-coordinate likelihood becomes ambiguous when the surrogate profile is multi-peaked. Before each response-fidelity realization, epochs classified as multi-peak under the injected $M_2$ response are excluded. All fitted models then use the identical retained epochs. The optimizer may traverse a continuous peak branch internally, but an $M_1$ or $M_2$ fit is accepted for scientific analysis only when the final fitted response is single-peaked at every retained epoch. The reported 720-fit, 270-fit, and 100-seed experiments all retain all 87 Gaia-like epochs and contain no multi-peak injection or final prediction.
+A one-coordinate likelihood becomes ambiguous when the surrogate profile is multi-peaked. Before each response-fidelity realization, epochs classified as multi-peak under the injected $\mtwo$ response are excluded. All fitted models then use the identical retained epochs. The optimizer may traverse a continuous peak branch internally, but an $\mone$ or $\mtwo$ fit is accepted for scientific analysis only when the final fitted response is single-peaked at every retained epoch. The reported 720-fit, 270-fit, and 100-seed experiments all retain all 87 Gaia-like epochs and contain no multi-peak injection or final prediction.
 
 \subsection{Joint Objective and Paired Model Comparison}
 
-The deterministic validation objective combines resolved relative astrometry, both SB2 velocities, and Gaia-like along-scan observations. All eleven parameters in Equation~(\ref{eq:theta}) are fitted with bounded least squares. For each physical configuration and random seed, $M_0$, $M_1$, and $M_2$ are fitted to the same synthetic realization.
+The deterministic validation objective combines resolved relative astrometry, both SB2 velocities, and Gaia-like along-scan observations. All eleven parameters in Equation~(\ref{eq:theta}) are fitted with bounded least squares. For each physical configuration and random seed, $\mzero$, $\mone$, and $\mtwo$ are fitted to the same synthetic realization.
 
 We use
 \begin{align}
-\Delta\chi^2_{0,2}&=\chi^2_{M_0}-\chi^2_{M_2},\\
-\Delta\chi^2_{1,2}&=\chi^2_{M_1}-\chi^2_{M_2}
+\Delta\chi^2_{0,2}&=\chi^2_{\mzero}-\chi^2_{\mtwo},\\
+\Delta\chi^2_{1,2}&=\chi^2_{\mone}-\chi^2_{\mtwo}
 \end{align}
-as descriptive paired mismatch diagnostics. Positive values favor the more faithful $M_2$ response on the same data, but the models are not treated as nested and the differences are not converted to Gaussian detection significances.
+as descriptive paired mismatch diagnostics. Positive values favor the more faithful $\mtwo$ response on the same data, but the models are not treated as nested and the differences are not converted to Gaussian detection significances.
 
 The primary scientific diagnostics are instead the fractional parameter biases,
 \begin{equation}
 \delta_x=\frac{\widehat{x}-x_{\rm true}}{x_{\rm true}},
 \label{eq:fracbias}
 \end{equation}
-especially for $M_1$, $M_2$, $\varpi$, and $\betag$. The current study uses deterministic fits to isolate response-model bias. Posterior coverage is intentionally deferred until this hierarchy is established.
+especially for the physical component masses $M_1$ and $M_2$, parallax $\varpi$, and light fraction $\betag$. The current study uses deterministic fits to isolate response-model bias. Posterior coverage is intentionally deferred until this hierarchy is established.
