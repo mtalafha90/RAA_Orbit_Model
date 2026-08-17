@@ -88,19 +88,21 @@ and the unresolved along-scan photocentre is $(\betag-B)\Delta\eta$.
 
 \subsection{Resolution-Aware Gaussian Surrogate}
 
-The resolution-aware prototype represents the one-dimensional along-scan light profile as
+The baseline resolution-aware prototype represents the one-dimensional along-scan light profile as
 \begin{equation}
 I(x)=F_1\exp\!\left[-\frac{(x-x_1)^2}{2\sigma^2}\right]
 +F_2\exp\!\left[-\frac{(x-x_2)^2}{2\sigma^2}\right].
 \label{eq:gaussian}
 \end{equation}
-The predicted coordinate in the current single-peak model is the location of the global maximum of $I(x)$. The width $\sigma$ is a research scaling parameter. It is neither fitted to nor identified with Gaia's calibrated line-spread function.
+The predicted coordinate in the current single-peak model is the location of the global maximum of $I(x)$. The width $\sigma$ is a research scaling parameter. It is neither fitted to nor identified with Gaia's calibrated line-spread function in the frozen experiments.
+
+This response is not introduced here as new measurement physics. It reproduces the equal-width blended-profile response implemented in \texttt{gaiamock} \citep{ElBadry2024}. More generally, \citet{Penoyre2026} derives positions and resolvability for blended Gaussian sources with an elongated PSF and shows that the problem can be reduced to a one-dimensional profile using an orientation-dependent effective width. Equation~(\ref{eq:gaussian}) is therefore a deliberately restricted constant-effective-width case. The restriction is useful for isolating inference effects, but it omits the orientation-, colour-, focal-plane-, and drift-scan-dependent profile changes expected for Gaia \citep{Rowell2026}.
 
 The surrogate has two required limiting behaviours. As $|x_2-x_1|/\sigma\rightarrow0$, the maximum approaches the flux-weighted photocentre. For a sufficiently separated unequal-light pair, the maximum approaches the brighter component. These limits are tested numerically.
 
 \subsection{Single-Peak Validity Boundary}
 
-A single-coordinate likelihood becomes physically ambiguous once the Gaussian mixture develops two modes. For $F_1=1-\betag$, $F_2=\betag$ and projected component separation $s$, the transition is obtained by imposing simultaneous first- and second-derivative conditions. With $a=e^u$ and $b=e^{-u}$ one obtains
+A single-coordinate likelihood becomes physically ambiguous once the equal-width Gaussian mixture develops two modes. For $F_1=1-\betag$, $F_2=\betag$ and projected component separation $s$, the transition is obtained by imposing simultaneous first- and second-derivative conditions. With $a=e^u$ and $b=e^{-u}$ one obtains
 \begin{equation}
 \sinh(2u)-2u=\ln\!\left(\frac{1-\betag}{\betag}\right),
 \end{equation}
@@ -109,13 +111,13 @@ and
 \frac{s_{\rm crit}}{\sigma}=2\cosh u.
 \label{eq:scrit}
 \end{equation}
-Thus $s_{\rm crit}/\sigma\rightarrow\infty$ for a dark secondary and $s_{\rm crit}/\sigma=2$ for equal light. Equation~(\ref{eq:scrit}) is a mathematical property of the equal-width Gaussian mixture, not a Gaia resolution criterion.
+Thus $s_{\rm crit}/\sigma\rightarrow\infty$ for a dark secondary and $s_{\rm crit}/\sigma=2$ for equal light. Equation~(\ref{eq:scrit}) is used here as an exact validation/domain criterion for the restricted equal-width surrogate. General blended-source resolvability, including orientation-dependent effective widths, is treated by \citet{Penoyre2026}; Equation~(\ref{eq:scrit}) is not claimed as a new general Gaia resolution criterion.
 
-Before every synthetic fit, epochs predicted to be multi-peak under the injected model are excluded from the present one-coordinate likelihood. The photocentre and resolution-aware hypotheses are then fit to the identical retained epoch set. The optimizer may use a continuous peak branch internally, but a final resolution-aware solution is accepted for scientific analysis only if all retained epochs are single-peaked. The output records both the flagged fraction and the final validity state.
+Before every baseline synthetic fit, epochs predicted to be multi-peak under the injected model are excluded from the present one-coordinate likelihood. The photocentre and resolution-aware hypotheses are then fit to the identical retained epoch set. The optimizer may use a continuous peak branch internally, but a final resolution-aware solution is accepted for scientific analysis only if all retained epochs are single-peaked. The output records both the flagged fraction and the final validity state.
 
 \subsection{Joint Fit and Model Comparison}
 
-The joint objective combines resolved relative astrometry, both SB2 velocities, and the Gaia-like along-scan observations. All eleven parameters in Equation~(\ref{eq:theta}) are fitted with bounded deterministic least squares. The same synthetic noise realization is used for both hypotheses for a given grid point and random seed.
+The baseline joint objective combines resolved relative astrometry, both SB2 velocities, and the Gaia-like along-scan observations. All eleven parameters in Equation~(\ref{eq:theta}) are fitted with bounded deterministic least squares. The same synthetic noise realization is used for both hypotheses for a given grid point and random seed.
 
 We summarize model mismatch by
 \begin{equation}
@@ -124,4 +126,4 @@ We summarize model mismatch by
 \end{equation}
 Positive values mean that the resolution-aware model attains a smaller $\chi^2$ on the same injected realization. The models have the same fitted parameter count but are not nested, so throughout this paper $\dchi$ is used descriptively; it is not converted to a Gaussian ``sigma'' significance.
 
-The current Gaia term contains the binary orbital along-scan response only. It does not yet include a complete five-parameter barycentric astrometric solution, spacecraft parallax factors, calibrated window samples, source matching, or Gaia selection effects. These limitations are important when interpreting the synthetic results.
+The frozen full-sky experiments use the binary orbital along-scan term as their controlled Gaia channel; they do not retroactively include later code extensions for absolute proper motion/parallax terms or posterior sampling. Those extensions are validation tools for subsequent experiments. A real Gaia target analysis will additionally require the spacecraft ephemeris, calibrated measurement physics, source-level nuisance parameters, and a production posterior engine.
