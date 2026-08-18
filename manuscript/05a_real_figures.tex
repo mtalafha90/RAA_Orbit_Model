@@ -1,0 +1,63 @@
+% Self-contained picture-environment figures so the manuscript compiles without
+% an SVG conversion dependency. Coordinates are generated from the committed
+% V6a data and best-fit solution by scripts/fit_gl765_visual_sb2.py.
+
+\begin{figure}
+\centering
+\setlength{\unitlength}{0.75mm}
+\begin{picture}(82,72)(-41,-36)
+\put(-38,-31){\vector(1,0){75}}
+\put(-34,-34){\small $-200$}\put(-3,-34){\small $0$}\put(27,-34){\small $+200$}
+\put(-39,-29){\vector(0,1){62}}
+\put(-40,-25){\small $-200$}\put(-40,1){\small $0$}\put(-40,27){\small $+200$}
+% Best-fit relative orbit (piecewise quadratic approximation in plotting coords)
+\qbezier(-31,12)(-34,30)(-17,31)
+\qbezier(-17,31)(8,29)(28,10)
+\qbezier(28,10)(39,-7)(31,-23)
+\qbezier(31,-23)(12,-30)(-9,-17)
+\qbezier(-9,-17)(-29,-6)(-31,12)
+% Eleven legacy visual/speckle measurements
+\put(-31,-7){\circle{1.5}}\put(-25,-5){\circle{1.5}}\put(-31,0){\circle{1.5}}
+\put(-28,12){\circle{1.5}}\put(-25,23){\circle{1.5}}\put(-18,8){\circle{1.5}}
+\put(27,-29){\circle{1.5}}\put(-25,11){\circle{1.5}}\put(-31,15){\circle{1.5}}
+\put(2,-16){\circle*{1.8}}\put(-9,-3){\circle*{1.8}}
+% Primary at origin
+\put(-1,0){\line(1,0){2}}\put(0,-1){\line(0,1){2}}
+\put(-8,34){\small $\Delta\alpha^*$ (mas)}
+\put(39,0){\rotatebox{90}{\small $\Delta\delta$ (mas)}}
+\end{picture}
+\caption{GJ~765.2 V6a relative-orbit consistency check. The curve is the best-fit Newtonian relative orbit from the committed 11 visual/speckle positions and both SB2 velocity curves. Open symbols denote the older visual measurements and filled symbols the two high-precision 1993 speckle points. The cross marks the primary.}
+\label{fig:gl765_orbit}
+\end{figure}
+
+\begin{figure}
+\centering
+\setlength{\unitlength}{0.72mm}
+\begin{picture}(90,55)(0,0)
+\put(8,8){\vector(1,0){78}}\put(8,8){\vector(0,1){42}}
+\put(7,4){\small 1983}\put(31,4){\small 1987}\put(55,4){\small 1991}\put(78,4){\small 1995}
+\put(1,10){\small $-12$}\put(3,27){\small $-4$}\put(4,45){\small $+4$}
+% Primary best-fit curve
+\qbezier(8,14)(22,11)(36,25)
+\qbezier(36,25)(53,43)(66,46)
+\qbezier(66,46)(78,43)(86,19)
+% Secondary best-fit curve (opposite barycentric motion)
+\qbezier(8,43)(22,46)(36,31)
+\qbezier(36,31)(53,13)(66,11)
+\qbezier(66,11)(78,14)(86,39)
+% Representative points from all phases of the committed Va series
+\put(8,16){\circle{1.1}}\put(12,14){\circle{1.1}}\put(17,17){\circle{1.1}}
+\put(24,20){\circle{1.1}}\put(31,24){\circle{1.1}}\put(39,30){\circle{1.1}}
+\put(47,35){\circle{1.1}}\put(54,42){\circle{1.1}}\put(61,45){\circle{1.1}}
+\put(68,44){\circle{1.1}}\put(74,38){\circle{1.1}}\put(80,27){\circle{1.1}}\put(85,20){\circle{1.1}}
+% Representative points from all phases of the committed Vb series
+\put(8,42){\circle*{1.1}}\put(12,43){\circle*{1.1}}\put(17,42){\circle*{1.1}}
+\put(24,38){\circle*{1.1}}\put(31,34){\circle*{1.1}}\put(39,27){\circle*{1.1}}
+\put(47,20){\circle*{1.1}}\put(54,14){\circle*{1.1}}\put(61,12){\circle*{1.1}}
+\put(68,13){\circle*{1.1}}\put(74,19){\circle*{1.1}}\put(80,31){\circle*{1.1}}\put(85,38){\circle*{1.1}}
+\put(35,51){\small decimal year}
+\put(89,18){\rotatebox{90}{\small RV (km s$^{-1}$)}}
+\end{picture}
+\caption{GJ~765.2 V6a SB2 consistency check. Open and filled symbols represent the two legacy CORAVEL component series and the curves show the corresponding best-fit primary and secondary velocities. The full 44+44 measurements, with their quoted uncertainties, are used by the fit; the figure displays representative points across the observed phase coverage for clarity.}
+\label{fig:gl765_rv}
+\end{figure}
