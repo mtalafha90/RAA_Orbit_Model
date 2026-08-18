@@ -16,6 +16,8 @@ results/*
 !results/frozen/**
 !results/dr3_validation/
 !results/dr3_validation/**
+!results/real/
+!results/real/**
 schedules/
 
 # LaTeX build products
@@ -24,6 +26,7 @@ schedules/
 *.blg
 *.log
 *.out
+*.pdf
 *.synctex.gz
 *.toc
 *.fdb_latexmk
