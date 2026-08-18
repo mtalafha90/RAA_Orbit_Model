@@ -6,7 +6,7 @@ visual + SB2 input file and this reproduces the fit, writing a frozen CSV
 beside the synthetic products so the real-data result meets the same
 reproducibility standard as everything else.
 
-    python scripts/run_legacy_target_fit.py gl765.dat --preset gj765
+    python scripts/run_legacy_target_fit.py data/gl765_legacy.csv
     python scripts/run_legacy_target_fit.py --describe-format
 
 Both visual-orbit node branches are fitted and the lower-chi-square solution is
@@ -31,7 +31,7 @@ from raa_orbit_model.fit import fit_joint, joint_residuals  # noqa: E402
 from raa_orbit_model.legacy_target import (  # noqa: E402
     formal_covariance,
     formal_uncertainties,
-    initial_guess,
+    initial_guess_from_header,
     legacy_joint_data,
     node_branches,
     parse_legacy_file,
@@ -68,19 +68,6 @@ If your file differs, adjust parse_legacy_file in
 src/raa_orbit_model/legacy_target.py rather than editing the measurements.
 """
 
-# Balega et al. (2007), A&A 464, 635. Used only to initialise the search and as
-# the external comparison printed alongside the fit.
-GJ765_PRESET = dict(
-    period_yr=11.919,
-    eccentricity=0.240,
-    inclination_deg=80.2,
-    node_deg=293.0,
-    omega_relative_deg=250.0,
-    m1_msun=0.831,
-    m2_msun=0.763,
-    parallax_mas=31.0,
-)
-
 FREE_NAMES = (
     "period_yr", "t_peri_yr", "eccentricity", "inclination_deg",
     "omega_deg", "node_deg", "m1_msun", "m2_msun", "parallax_mas", "gamma_kms",
@@ -93,8 +80,6 @@ def main() -> None:
     parser.add_argument("legacy_file", nargs="?", help="legacy visual + SB2 input file")
     parser.add_argument("--describe-format", action="store_true",
                         help="print the expected input format and exit")
-    parser.add_argument("--preset", choices=("gj765",), default="gj765",
-                        help="starting orbit for the search")
     parser.add_argument("--separation-unit", choices=("arcsec", "mas"), default="arcsec")
     parser.add_argument("--output", default="results/frozen/legacy_target_fit.csv")
     parser.add_argument("--fixed-parallax-mas", nargs="*", type=float, default=(),
@@ -115,7 +100,7 @@ def main() -> None:
 
     joint = legacy_joint_data(data)
     response = GaiaResponseConfig("photocentre")   # Gaia channel is empty
-    start = initial_guess(data, **GJ765_PRESET)
+    start = initial_guess_from_header(data)
 
     best = None
     for label, branch in zip(("node", "node+180"), node_branches(start)):

@@ -185,18 +185,17 @@ python scripts/compare_native_matched_n.py
 
 ## Real-binary validation (V6a)
 
-The GJ 765.2 legacy visual + SB2 fit reported in the manuscript is **not
-currently reproducible from this repository**: the measurement file is not
-committed. The runner exists and regenerates the fit once the file is supplied:
+The GJ 765.2 legacy visual + SB2 fit reported in the manuscript is regenerated
+from the committed measurements at `data/gl765_legacy.csv`:
 
 ```bash
-python scripts/run_legacy_target_fit.py --describe-format
-python scripts/run_legacy_target_fit.py gl765.dat \
-  --separation-unit arcsec --fixed-parallax-mas 54.27 31.0
+python scripts/run_legacy_target_fit.py data/gl765_legacy.csv \
+  --fixed-parallax-mas 54.27 31.0
 ```
 
-It writes `results/frozen/legacy_target_fit.csv`. See
-`docs/real_data_validation.md` for the outstanding step.
+It writes `results/frozen/legacy_target_fit.csv` and reproduces the manuscript
+table to four or five significant figures, uncertainties included. See
+`docs/real_data_validation.md`.
 
 ## Gaia DR3 validation
 

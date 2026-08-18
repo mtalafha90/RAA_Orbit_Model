@@ -12,29 +12,53 @@ CSV alongside the synthetic products.
 
 Input format
 ------------
-Reconstructed from the description in the manuscript, which states that the
-astrometry is given as position angle and separation converted through
+The project's own legacy CSV layout. Lines beginning with ``#`` or ``C`` are
+ignored; comment lines also introduce the measurement blocks. Fields are
+comma-separated::
+
+    #Objectinfo
+    Object, GL765.2
+    RA,19.404
+    Dec,76.1812
+    par,54.27
+
+    #Orbital elements
+    P,11.769
+    T,1993.513
+    ...
+
+    # RV1 Measurements
+    45533.4644,-10.69,0.51,Va,COR      # time, RV km/s, sigma, label, source
+
+    # RV2 Measurements
+    45533.4644,2.81,0.66,Vb,COR
+
+    # Visual Measurements
+    1971.6,275.6,0.21,0.04,I1,M1       # epoch, PA deg, rho arcsec, sigma arcsec
+
+**The two measurement blocks use different time systems.** Radial velocities
+are Julian dates minus 2 400 000, while visual measurements are decimal years.
+Mixing them would displace the velocities by millennia relative to an orbit of
+about twelve years, so the reader converts the velocities and verifies that the
+two blocks end up overlapping in time.
+
+Separations and their uncertainties are in arcseconds. Position angle is
+measured North through East and converted through
 
     delta_alpha* = rho sin(theta),   delta_delta = rho cos(theta)
 
-with ``theta`` measured North through East, and that "the fourth astrometric
-column is treated as an isotropic one-sigma tangent-plane positional
-uncertainty". The reader is therefore whitespace- or comma-separated with
+with the fourth column treated as an isotropic one-sigma tangent-plane
+uncertainty, matching the polar weighting of the legacy orbit code to first
+order.
 
-    astrometry:  epoch_yr   theta_deg   rho_arcsec_or_mas   sigma
-    velocities:  epoch_yr   rv1_kms     rv2_kms             sigma1  [sigma2]
+Header values initialise the search only and are never priors. For GJ 765.2
+the header parallax of 54.27 mas and the header coordinates are both known to
+be wrong, so neither may be trusted.
 
-Blocks are introduced by a line containing ``ASTROMETRY`` or ``VELOCITIES``
-(case-insensitive); ``#`` begins a comment. Header ``key = value`` pairs are
-captured but never used as priors, matching the manuscript's statement that
-header values initialise only. In particular the legacy header parallax of
-54.27 mas and the header coordinates are known to be wrong and must not be
-trusted.
-
-**If your file differs, adjust `parse_legacy_file` rather than editing the
-data.** The separation unit is explicit (``--separation-unit``) because a
-legacy file may quote either arcseconds or milliarcseconds, and guessing would
-silently rescale the orbit.
+Component labelling: in this file the ``Va`` curve has the *larger* velocity
+amplitude, so it belongs to the *less massive* component. The labels therefore
+do not map onto the later A/B convention, and only the label-invariant total
+mass should be compared with published solutions.
 """
 
 from __future__ import annotations
@@ -81,87 +105,193 @@ class LegacyTargetData:
         return 2 * self.n_astrometry + 2 * self.n_rv
 
     def header_float(self, key: str) -> float | None:
-        for name, value in self.header.items():
-            if name.lower() == key.lower():
-                match = _NUMBER.search(value)
-                if match:
-                    return float(match.group().replace("d", "e").replace("D", "e"))
+        """Look up a numeric header value.
+
+        The match is **case sensitive** first, because this format uses case to
+        distinguish different elements: ``W`` is the node and ``w`` the
+        argument of periastron. Folding case would silently conflate them. A
+        case-insensitive fallback applies only when no exact key exists and the
+        fold is unambiguous.
+        """
+        def as_float(text):
+            match = _NUMBER.search(text)
+            return float(match.group()) if match else None
+
+        if key in self.header:
+            return as_float(self.header[key])
+        folded = [n for n in self.header if n.lower() == key.lower()]
+        if len(folded) == 1:
+            return as_float(self.header[folded[0]])
         return None
 
 
-def _numbers(line: str) -> list[float]:
-    return [float(m.replace("d", "e").replace("D", "e")) for m in _NUMBER.findall(line)]
+#: Julian date of the epoch J2000.0, used to convert JD - 2400000 to years.
+_JD_J2000 = 2451545.0
+_JD_OFFSET = 2400000.0
+_DAYS_PER_YEAR = 365.25
+
+
+def jd2400000_to_decimalyear(value):
+    """Convert a Julian date minus 2 400 000 to a decimal year."""
+    x = np.asarray(value, dtype=float)
+    return 2000.0 + (x + _JD_OFFSET - _JD_J2000) / _DAYS_PER_YEAR
+
+
+def _fields(line: str) -> list[str]:
+    return [f.strip() for f in line.split(",")]
+
+
+def _is_comment(line: str) -> bool:
+    stripped = line.strip()
+    return (not stripped) or stripped.startswith("#") or stripped.upper().startswith("C,")
 
 
 def parse_legacy_file(
     path: str | Path,
     *,
     separation_unit: str = "arcsec",
+    rv_time_system: str = "jd2400000",
 ) -> LegacyTargetData:
-    """Parse a legacy visual + SB2 orbit input file.
+    """Parse the project's legacy visual + SB2 CSV.
 
-    ``separation_unit`` must be ``"arcsec"`` or ``"mas"`` and is applied to both
-    the separation and its uncertainty.
+    ``separation_unit`` applies to the separation and its uncertainty.
+    ``rv_time_system`` is ``"jd2400000"`` (the file convention) or
+    ``"decimalyear"``; it is declared rather than guessed because an
+    unconverted velocity epoch would sit millennia from the visual orbit.
     """
     if separation_unit not in ("arcsec", "mas"):
         raise ValueError("separation_unit must be 'arcsec' or 'mas'")
+    if rv_time_system not in ("jd2400000", "decimalyear"):
+        raise ValueError("rv_time_system must be 'jd2400000' or 'decimalyear'")
     scale = 1000.0 if separation_unit == "arcsec" else 1.0
 
     header: dict[str, str] = {}
-    astrometry: list[list[float]] = []
-    velocities: list[list[float]] = []
+    rv1: list[list[float]] = []
+    rv2: list[list[float]] = []
+    visual: list[list[float]] = []
     block = None
 
     for raw in Path(path).read_text().splitlines():
-        line = raw.split("#", 1)[0].strip()
-        if not line:
+        if _is_comment(raw):
+            marker = raw.upper()
+            if "RV1" in marker:
+                block = "rv1"
+            elif "RV2" in marker:
+                block = "rv2"
+            elif "VISUAL" in marker:
+                block = "visual"
             continue
-        upper = line.upper()
-        if "ASTROMETR" in upper and not _numbers(line):
-            block = "astrometry"
+        fields = _fields(raw)
+        if len(fields) < 2:
             continue
-        if ("VELOCIT" in upper or "RADIAL" in upper) and not _numbers(line):
-            block = "velocities"
+        # Header rows are "key,value" with a non-numeric key.
+        if block is None:
+            try:
+                float(fields[0])
+            except ValueError:
+                header[fields[0]] = fields[1]
+                continue
+        try:
+            numbers = [float(f) for f in fields if _NUMBER.fullmatch(f)]
+        except ValueError:  # pragma: no cover - guarded by fullmatch
             continue
-        if "=" in line and block is None:
-            key, value = line.split("=", 1)
-            header[key.strip()] = value.strip()
-            continue
-        values = _numbers(line)
-        if not values:
-            continue
-        if block == "astrometry":
-            if len(values) < 4:
-                raise ValueError(f"astrometry row needs 4 columns, got {len(values)}: {raw!r}")
-            astrometry.append(values)
-        elif block == "velocities":
-            if len(values) < 4:
-                raise ValueError(f"velocity row needs at least 4 columns, got {len(values)}: {raw!r}")
-            velocities.append(values)
+        if block == "visual":
+            if len(numbers) < 4:
+                raise ValueError(f"visual row needs 4 numeric columns: {raw!r}")
+            visual.append(numbers[:4])
+        elif block == "rv1":
+            if len(numbers) < 3:
+                raise ValueError(f"RV1 row needs 3 numeric columns: {raw!r}")
+            rv1.append(numbers[:3])
+        elif block == "rv2":
+            if len(numbers) < 3:
+                raise ValueError(f"RV2 row needs 3 numeric columns: {raw!r}")
+            rv2.append(numbers[:3])
 
-    if not astrometry:
+    if not visual:
         raise ValueError(f"no relative astrometry found in {path}")
-    if not velocities:
+    if not rv1 or not rv2:
         raise ValueError(f"no radial velocities found in {path}")
+    if len(rv1) != len(rv2):
+        raise ValueError(
+            f"RV1 and RV2 blocks must be paired: got {len(rv1)} and {len(rv2)} rows"
+        )
 
-    a = np.array([row[:4] for row in astrometry], dtype=float)
-    v_primary_sigma = np.array([row[3] for row in velocities], dtype=float)
-    v_secondary_sigma = np.array(
-        [row[4] if len(row) > 4 else row[3] for row in velocities], dtype=float
+    a = np.array(visual, dtype=float)
+    v1 = np.array(rv1, dtype=float)
+    v2 = np.array(rv2, dtype=float)
+    if not np.allclose(v1[:, 0], v2[:, 0], rtol=0, atol=1e-6):
+        raise ValueError("RV1 and RV2 epochs differ; the two curves must be paired")
+
+    rv_epoch = (
+        jd2400000_to_decimalyear(v1[:, 0]) if rv_time_system == "jd2400000" else v1[:, 0]
     )
-    v = np.array([row[:3] for row in velocities], dtype=float)
+
+    # Guard against an unconverted or wrongly declared time system: an orbit of
+    # a few years cannot be constrained by blocks that do not overlap at all.
+    visual_epoch = a[:, 0]
+    gap = max(visual_epoch.min(), rv_epoch.min()) - min(visual_epoch.max(), rv_epoch.max())
+    if gap > 200.0:
+        raise ValueError(
+            "visual and radial-velocity epochs do not overlap "
+            f"(visual {visual_epoch.min():.1f}-{visual_epoch.max():.1f}, "
+            f"RV {rv_epoch.min():.1f}-{rv_epoch.max():.1f}); "
+            "check rv_time_system"
+        )
 
     return LegacyTargetData(
         header=header,
-        astrometry_epoch_yr=a[:, 0],
+        astrometry_epoch_yr=visual_epoch,
         position_angle_deg=a[:, 1],
         separation_mas=a[:, 2] * scale,
         astrometry_sigma_mas=a[:, 3] * scale,
-        rv_epoch_yr=v[:, 0],
-        rv_primary_kms=v[:, 1],
-        rv_secondary_kms=v[:, 2],
-        rv_primary_sigma_kms=v_primary_sigma,
-        rv_secondary_sigma_kms=v_secondary_sigma,
+        rv_epoch_yr=rv_epoch,
+        rv_primary_kms=v1[:, 1],
+        rv_secondary_kms=v2[:, 1],
+        rv_primary_sigma_kms=v1[:, 2],
+        rv_secondary_sigma_kms=v2[:, 2],
+    )
+
+
+def initial_guess_from_header(data: LegacyTargetData) -> BinaryParams:
+    """Starting orbit built from the file's own header elements.
+
+    The header supplies ``P``, ``T``, ``e``, ``a`` (arcsec), ``W`` (node),
+    ``w``, ``i``, ``K1``, ``K2``, ``V0`` and ``par``. Total mass follows from
+    Kepler's third law using the header semi-major axis and parallax, and the
+    mass ratio from ``M2/M1 = K1/K2``. These values initialise only.
+    """
+    def need(key):
+        value = data.header_float(key)
+        if value is None:
+            raise ValueError(f"legacy header is missing '{key}'")
+        return value
+
+    period = need("P")
+    parallax = need("par")
+    a_arcsec = need("a")
+    k1, k2 = need("K1"), need("K2")
+
+    a_rel_au = (a_arcsec * 1000.0) / parallax
+    total_mass = a_rel_au**3 / period**2
+    q = k1 / k2                      # M2/M1, so Va is the less massive component
+    m1 = total_mass / (1.0 + q)
+
+    epoch0 = float(np.min(data.astrometry_epoch_yr))
+    return BinaryParams(
+        period_yr=period,
+        t_peri_yr=need("T") - epoch0,
+        eccentricity=need("e"),
+        inclination_deg=need("i"),
+        # The file's w is the relative-orbit argument; the model stores the
+        # primary's, which differs by 180 degrees.
+        omega_deg=(need("w") - 180.0) % 360.0,
+        node_deg=need("W") % 360.0,
+        m1_msun=m1,
+        m2_msun=q * m1,
+        parallax_mas=parallax,
+        gamma_kms=need("V0"),
+        beta_g=0.0,
     )
 
 
