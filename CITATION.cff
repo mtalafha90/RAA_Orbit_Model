@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use the RAA Orbit Model in research, please cite the software repository and the associated paper when available."
+title: "RAA Orbit Model: Resolution-Aware Joint Orbit Inference for Marginally Resolved Gaia Binaries"
+type: software
+authors:
+  - family-names: Talafha
+    given-names: Mohammed H.
+    affiliation: "Research Institute of Sciences and Engineering (RISE), University of Sharjah"
+repository-code: "https://github.com/mtalafha90/RAA_Orbit_Model"
+version: 0.1.0
+date-released: 2026-08-18
+license: MIT
+keywords:
+  - astrometry
+  - binary stars
+  - Gaia
+  - SB2
+  - dynamical masses
+  - marginal resolution
