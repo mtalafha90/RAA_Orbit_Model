@@ -1,0 +1,81 @@
+\section{Real-Binary Validation and Gaia DR3/DR4 Tests}
+\label{sect:realdata}
+
+\subsection{Legacy GJ~765.2 Visual--SB2 Data}
+
+As a first real-system check of the physical orbit engine, we use a legacy subset for the visual and double-lined spectroscopic binary GJ~765.2 = HD~186922 = HIP~96656. The later combined interferometric--spectroscopic solution of \citet{Balega2007} provides the reference scale: $P=11.919\pm0.003$~yr, $e=0.240\pm0.003$, $i=80.2\pm0.2^\circ$, $\Omega_{\rm asc}=293.0\pm0.6^\circ$, $\omega_{\rm rel}=250.0\pm0.1^\circ$, component masses $0.831\pm0.020$ and $0.763\pm0.019\,M_\odot$, and orbital parallax $31.0\pm0.5$~mas.
+
+The exact legacy input used here is versioned with the analysis. It contains 11 resolved relative positions and 44 CORAVEL epochs for each RV component. Position angle and separation are converted to the tangent plane through
+\begin{equation}
+\Delta\alpha^*=\rho\sin\theta,\qquad
+\Delta\delta=\rho\cos\theta,
+\end{equation}
+where $\theta$ is measured from North through East. The quoted positional error is represented as an isotropic one-sigma tangent-plane uncertainty, while each RV retains its quoted uncertainty. Legacy numerical RV epochs are converted to decimal years with the historical input convention documented alongside the data.
+
+No Gaia epoch measurement is present in V6a. The fit therefore contains only the ten physical parameters $P$, $T_0$, $e$, $i$, $\omega_1$, $\Omega$, $M_1$, $M_2$, $\varpi$, and $\gamma$; $\betag$ is not a free parameter in this data-only fit. The bounds cover the physical node range and the solution is initialized on the node branch consistent with the combined visual--spectroscopic geometry. The legacy header metadata are retained for provenance but are not imposed as priors.
+
+\subsection{Fit to the Legacy Subset}
+
+The real-data fit contains 110 scalar constraints and ten free parameters and gives
+\begin{equation}
+\chi^2=104.629,\qquad \nu=100,\qquad \chi^2_\nu=1.04629.
+\end{equation}
+Table~\ref{tab:gl765} compares the recovered orbit with the later combined solution. The CORAVEL velocities overlap measurements used by \citet{Balega2007}; V6a is therefore an implementation/consistency check rather than an independent astrophysical measurement.
+
+\begin{table}
+\begin{center}
+\caption{GJ~765.2 Legacy-Subset Consistency Check}
+\label{tab:gl765}
+\begin{tabular}{lcc}
+\hline\noalign{\smallskip}
+Quantity & RAA legacy-subset fit & \citet{Balega2007}\\
+\hline\noalign{\smallskip}
+$P$ (yr) & $11.728\pm0.073$ & $11.919\pm0.003$\\
+$e$ & $0.2489\pm0.0101$ & $0.240\pm0.003$\\
+$i$ (deg) & $81.83\pm1.37$ & $80.2\pm0.2$\\
+$\Omega_{\rm asc}$ (deg) & $289.07\pm3.27$ & $293.0\pm0.6$\\
+$\omega_{\rm rel}$ (deg) & $251.79\pm2.25$ & $250.0\pm0.1$\\
+$M_1+M_2$ ($M_\odot$) & $1.5897$ & $1.594$\\
+$\varpi_{\rm orb}$ (mas) & $35.44\pm2.24$ & $31.0\pm0.5$\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+\tablecomments{0.94\textwidth}{RAA uncertainties are local formal one-sigma errors from the weighted least-squares Jacobian. Individual component masses are not compared one-to-one because the labels in the legacy RV file do not map unambiguously onto the later A/B convention; the total mass is label invariant.}
+\end{table}
+
+The total mass differs from the later combined value by only $0.27\%$. The orbital parallax is less precise and higher than the later value. More importantly, the 54.27~mas parallax stored in the legacy header is strongly disfavoured by the measurement data: fixing $\varpi=54.27$~mas gives $\chi^2=168.94$ ($\chi^2_\nu=1.673$, 101 degrees of freedom), whereas fixing $31.0$~mas gives $\chi^2=108.70$ ($\chi^2_\nu=1.076$). Figures~\ref{fig:gl765_orbit} and \ref{fig:gl765_rv} show the corresponding relative-orbit and SB2 consistency checks.
+
+The exact input, parser/fitter, executable runner, regression tests and frozen numerical outputs are committed under \texttt{data/real/gj7652/}, \texttt{src/raa\_orbit\_model/real\_data.py}, \texttt{scripts/fit\_gl765\_visual\_sb2.py}, \texttt{tests/test\_real\_data.py}, and \texttt{results/real/gj7652/}, respectively. Thus the V6a numbers in this section are executable repository results rather than manually transcribed values.
+
+This experiment validates only the Newtonian/SB2 plus resolved-relative-astrometry core on a real stellar system. It does not validate the marginal-resolution Gaia response.
+
+\subsection{Gaia DR3 as an Intermediate Catalogue-Level Test}
+\label{sect:dr3bridge}
+
+Gaia DR3 does not provide the general source-level epoch along-scan data needed to refit $\mzero$--$\mtwo$ directly, but it provides useful catalogue diagnostics. The DR3 \texttt{gaia\_source} table includes \texttt{ipd\_frac\_multi\_peak} and scan-angle-dependent IPD goodness-of-fit harmonics, while \texttt{nss\_two\_body\_orbit} can provide a catalogue photocentre orbit. These quantities can test whether the source exhibits symptoms of close-pair structure and whether a published photocentre orbit is compatible with the independently constrained visual--SB2 geometry, but they are not epoch-level response measurements.
+
+For the ordinary unresolved-photocentre benchmark,
+\begin{equation}
+a_{\rm phot}=|\beta-B|a_{\rm rel},\qquad
+B=\frac{M_2}{M_1+M_2}.
+\end{equation}
+The published GJ~765.2 masses give $B=0.47867$. The component difference $\Delta V=0.65$~mag gives the temporary optical proxy
+\begin{equation}
+\beta_V=\frac{1}{1+10^{0.4\Delta V}}=0.35465,
+\end{equation}
+and with $a_{\rm rel}=189$~mas,
+\begin{equation}
+a_{\rm phot,V}=23.44~{\rm mas}.
+\label{eq:gl765_phot_benchmark}
+\end{equation}
+The subscript $V$ is essential: this is not a measured Gaia $G$-band light fraction.
+
+The target-specific query identifies HIP~96656 through Gaia's Hipparcos-2 best-neighbour cross-match before joining to \texttt{gaia\_source} and \texttt{nss\_two\_body\_orbit}; the incorrect coordinates stored in the legacy input header are not used for target identification. The query, parser, Thiele--Innes conversion and regression tests are versioned with the code. No target-specific DR3 numerical value is included here because a validated catalogue export has not yet been ingested. V6b therefore remains a catalogue/IPD consistency layer rather than evidence for or against a particular response model.
+
+\subsection{DR4 Measurement-Level Test and Target Feasibility}
+
+Official Gaia DR4 expected-content documentation lists \texttt{epoch\_astrometry}, \texttt{epoch\_image}, and \texttt{rvs\_epoch\_data\_double} among the planned products. These are the products needed for a direct measurement-level test once publicly available. The expected-content pages are still subject to release validation, so no firm DR4 release date is assumed in this analysis.
+
+Propagating the \citet{Balega2007} orbit over the documented 66-month DR4 observation interval gives a projected component separation of approximately 24.7--199.1~mas. With the temporary $V$-band light proxy and the current equal-width research baseline $\alpha=50$~mas, the surrogate mode-splitting threshold is about 128.5~mas. A uniform time--orientation envelope places 24.1\% of combinations in the surrogate multi-peak regime; for 58.0\% of the interval at least some orientations cross the threshold, and the maximum crossing fraction at one epoch is 55.3\%.
+
+These percentages are not Gaia transit statistics and the 50~mas width is not a calibrated Gaia PLSF value. They establish only that GJ~765.2 is a useful transition-regime feasibility target. The real V7 test must use released source-level epoch products, and genuinely multi-peaked observations should be handled in the image/sample domain rather than forced into a unique astrometric coordinate.
