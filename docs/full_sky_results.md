@@ -25,6 +25,27 @@ At beta_G = 0.25 and a/sigma = 1, descriptive Spearman correlations across the 4
 
 ## Reproduction
 
+The experiment itself. `--full-sky` selects the pole-to-pole latitude grid
+`-90, -75, ..., +75, +90 deg`, which with the four default longitudes and both
+poles deduplicated gives exactly the 46 positions reported here. The bare
+command-line default is the superseded 25-position northern pilot, so **this
+flag is required to reproduce the published run**:
+
+```bash
+python scripts/run_sky_position_scan.py \
+  --full-sky \
+  --release dr4 \
+  --seeds 10 \
+  --sigma-response-mas 50 \
+  --output-dir results/sky_position_dr4_full
+```
+
+That reproduces 46 positions x 5 light fractions x 5 separation ratios x
+10 seeds x 2 models = 23,000 fit records. It needs the optional `scanlaw` and
+`sky` dependencies (`pip install -e ".[test,scanlaw,sky,analysis]"`).
+
+Then the analysis:
+
 ```bash
 python scripts/analyze_sky_position_scan.py \
   results/sky_position_dr4_full/sky_position_bias.csv \

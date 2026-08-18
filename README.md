@@ -119,6 +119,7 @@ src/raa_orbit_model/response_fidelity.py
 src/raa_orbit_model/bias_analysis.py
 src/raa_orbit_model/dr3_validation.py
 src/raa_orbit_model/dr3_target.py
+src/raa_orbit_model/legacy_target.py
 ```
 
 ## Install and test
@@ -181,6 +182,21 @@ python scripts/run_sky_position_scan.py
 python scripts/run_matched_n_control.py
 python scripts/compare_native_matched_n.py
 ```
+
+## Real-binary validation (V6a)
+
+The GJ 765.2 legacy visual + SB2 fit reported in the manuscript is **not
+currently reproducible from this repository**: the measurement file is not
+committed. The runner exists and regenerates the fit once the file is supplied:
+
+```bash
+python scripts/run_legacy_target_fit.py --describe-format
+python scripts/run_legacy_target_fit.py gl765.dat \
+  --separation-unit arcsec --fixed-parallax-mas 54.27 31.0
+```
+
+It writes `results/frozen/legacy_target_fit.csv`. See
+`docs/real_data_validation.md` for the outstanding step.
 
 ## Gaia DR3 validation
 

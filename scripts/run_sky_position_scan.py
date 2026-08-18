@@ -20,6 +20,8 @@ from raa_orbit_model.sky_experiments import sky_resolution_bias_scan
 from raa_orbit_model.sky_study import (
     DEFAULT_ECLIPTIC_LATITUDES_DEG,
     DEFAULT_ECLIPTIC_LONGITUDES_DEG,
+    FULL_SKY_ECLIPTIC_LATITUDES_DEG,
+    FULL_SKY_POSITION_COUNT,
     augment_bias_rows,
     build_ecliptic_grid,
     position_record,
@@ -66,8 +68,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run the RAA transition experiment over a controlled Gaia sky-position grid")
     parser.add_argument("--output-dir", default="results/sky_position_dr4")
     parser.add_argument("--release", choices=("dr1", "dr2", "dr3", "dr4", "dr5"), default="dr4")
-    parser.add_argument("--ecliptic-lat-values", nargs="+", type=float, default=DEFAULT_ECLIPTIC_LATITUDES_DEG)
+    parser.add_argument("--ecliptic-lat-values", nargs="+", type=float, default=DEFAULT_ECLIPTIC_LATITUDES_DEG,
+                        help="default is the superseded 25-position northern pilot; see --full-sky")
     parser.add_argument("--ecliptic-lon-values", nargs="+", type=float, default=DEFAULT_ECLIPTIC_LONGITUDES_DEG)
+    parser.add_argument("--full-sky", action="store_true",
+                        help="use the published pole-to-pole latitude grid, giving the "
+                             "46 sky positions reported in the manuscript; overrides "
+                             "--ecliptic-lat-values")
     parser.add_argument("--a-over-sigma-values", nargs="+", type=float, default=DEFAULT_A_OVER_SIGMA)
     parser.add_argument("--beta-values", nargs="+", type=float, default=DEFAULT_BETA_VALUES)
     parser.add_argument("--seeds", type=int, default=10)
@@ -100,8 +107,14 @@ def main() -> None:
     schedule_dir.mkdir(parents=True, exist_ok=True)
     position_dir.mkdir(parents=True, exist_ok=True)
 
-    positions = build_ecliptic_grid(args.ecliptic_lat_values, args.ecliptic_lon_values)
+    latitudes = FULL_SKY_ECLIPTIC_LATITUDES_DEG if args.full_sky else args.ecliptic_lat_values
+    positions = build_ecliptic_grid(latitudes, args.ecliptic_lon_values)
     print(f"sky positions: {len(positions)}")
+    if args.full_sky and len(positions) != FULL_SKY_POSITION_COUNT:
+        parser.error(
+            f"--full-sky expects {FULL_SKY_POSITION_COUNT} positions but the requested "
+            f"longitude grid gives {len(positions)}; the published run uses the default longitudes"
+        )
 
     resolved = {}
     scan_rows = []

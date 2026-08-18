@@ -29,6 +29,28 @@ The legacy file header contains parallax = 54.27 mas. When that value is held fi
 
 V6a validates the non-Gaia physical orbit engine on a real stellar binary. It does **not** validate the marginal-resolution Gaia response.
 
+### Reproducibility: input data not yet in the repository
+
+The numbers above were produced outside this repository and **cannot currently be regenerated from it**, because the legacy measurement file is not committed. Every synthetic result here has a frozen product and a documented runner; this real-stellar result does not, and it is the result a referee will scrutinise most closely.
+
+The code half of that gap is now closed:
+
+- `src/raa_orbit_model/legacy_target.py` — reader for the legacy visual + SB2 format, the polar-to-tangent-plane conversion, node-branch handling, and covariance-propagated total-mass error.
+- `scripts/run_legacy_target_fit.py` — refits the orbit and writes `results/frozen/legacy_target_fit.csv`.
+- `tests/test_legacy_target.py` — 13 tests. Since the real measurements are absent, they exercise the loader and fit path with a synthetic file in the same format generated from a known orbit, and confirm the injected orbit is recovered through the reader.
+
+To complete V6a:
+
+```bash
+python scripts/run_legacy_target_fit.py --describe-format   # confirm the layout
+python scripts/run_legacy_target_fit.py gl765.dat \
+    --separation-unit arcsec --fixed-parallax-mas 54.27 31.0
+```
+
+Then commit the input file alongside `results/frozen/legacy_target_fit.csv` and reconcile the regenerated values with the table above and with `tab:gl765`.
+
+The expected input layout is reconstructed from the description in the manuscript. **If the real file differs, adjust `parse_legacy_file` rather than editing the measurements.** The separation unit must be declared rather than guessed, since a wrong unit would silently rescale the orbit by a factor of 1000. Until this is done, V6a should be described as *executed externally, pending in-repository reproduction*, not simply as executed.
+
 ## V6b — Gaia DR3 catalogue/IPD consistency: target workflow implemented, target row not yet retrieved here
 
 DR3 can provide a scientifically useful intermediate test even though it cannot supply the general stellar epoch along-scan measurements required to fit the RAA response hierarchy directly.

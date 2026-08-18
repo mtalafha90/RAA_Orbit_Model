@@ -8,8 +8,21 @@ import numpy as np
 
 from .scanning import GaiaScanSchedule
 
+#: Northern-only grid of the original 25-position pilot. Kept as the default so
+#: that runs predating the full-sky experiment stay reproducible.
 DEFAULT_ECLIPTIC_LATITUDES_DEG = (0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0)
 DEFAULT_ECLIPTIC_LONGITUDES_DEG = (0.0, 90.0, 180.0, 270.0)
+
+#: Latitudes of the published full-sky experiment: 15-degree steps from pole to
+#: pole. With the four default longitudes and both poles deduplicated this gives
+#: the 46 sky positions reported in the manuscript. The default above is the
+#: superseded northern-only pilot and yields 25, so the published run is NOT
+#: reproducible from the defaults; use this grid, or ``--full-sky`` on
+#: ``scripts/run_sky_position_scan.py``.
+FULL_SKY_ECLIPTIC_LATITUDES_DEG = tuple(float(v) for v in range(-90, 91, 15))
+
+#: Number of positions the published full-sky experiment used.
+FULL_SKY_POSITION_COUNT = 46
 
 @dataclass(frozen=True)
 class SkyPosition:

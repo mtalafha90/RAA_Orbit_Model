@@ -15,6 +15,8 @@ Default ecliptic longitudes at each non-polar latitude: `0, 90, 180, 270 deg`.
 
 Longitude is degenerate at the ecliptic pole, so the pole is represented once. The default grid contains 25 sky positions. Negative latitudes are supported through the command line but are not part of the first controlled run.
 
+> **Superseded.** This note describes the original 25-position northern pilot. The published experiment is the **46-position full-sky** run documented in `docs/full_sky_results.md`, which extends the latitude grid from pole to pole. The command-line default remains the 25-position pilot so earlier runs stay reproducible, so the published result is **not** obtained from the defaults. Use `--full-sky`, or `FULL_SKY_ECLIPTIC_LATITUDES_DEG` in `sky_study.py`. The physical grid and record counts below likewise refer to the pilot, not to the published run.
+
 ## Physical grid
 
 The first sky experiment uses:
