@@ -1,6 +1,6 @@
 # 00 — Documentation index
 
-This is the canonical reading order for the scientific documentation. The filenames are now physically numbered so GitHub displays them in research order rather than alphabetically by topic.
+This is the canonical reading order for the scientific documentation. The filenames are physically numbered so GitHub displays them in research order rather than alphabetically by topic.
 
 | No. | Canonical document | Purpose |
 |---:|---|---|
@@ -30,14 +30,14 @@ This is the canonical reading order for the scientific documentation. The filena
 
 ## Manuscript assembly
 
-`main.tex` is the canonical paper entry point. It currently assembles:
+`main.tex` is the canonical paper entry point. It assembles:
 
 1. `manuscript/01_introduction.tex`
 2. `manuscript/model.tex`
 3. `manuscript/experiments.tex`
 4. `manuscript/results.tex`
 5. `manuscript/04_result_figures.tex`
-6. `manuscript/real_data_validation.tex`
+6. `manuscript/05_real_data_validation.tex`
 7. `manuscript/05a_real_figures.tex`
 8. `manuscript/discussion_conclusions.tex`
 
@@ -56,4 +56,4 @@ The scientific section numbering is controlled by LaTeX; auxiliary figure snippe
 - `figures/`: project figures only.
 - `raa.cls` and `raa.bst`: journal files required to compile `main.tex`.
 
-Superseded unnumbered documentation files are not part of the canonical set and are removed once internal references are migrated.
+There is one canonical numbered documentation set; superseded unnumbered copies have been removed.
