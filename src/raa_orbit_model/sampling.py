@@ -13,7 +13,12 @@ sampler: adequate for mapping degeneracies in a controlled synthetic study,
 and not a substitute for a production sampler on real data.
 
 Priors are uniform over the same bounds the least-squares fitter uses, so the
-two backends describe the same parameter space.
+two backends describe the same parameter space. Anything ``fit_joint`` can
+free, this can sample: the orbit, the absolute astrometric parameters and the
+instrument response width. It additionally samples per-channel jitter terms,
+which the least-squares backend cannot represent because they change the
+variance rather than the model, and so need the normalisation that only the
+full likelihood carries.
 """
 
 from __future__ import annotations
@@ -22,7 +27,7 @@ from dataclasses import dataclass, replace
 
 import numpy as np
 
-from .fit import _bounds_for, joint_loglike
+from .fit import RESPONSE_PARAMETER_NAMES, _bounds_for, joint_loglike
 from .kepler import BinaryParams
 from .model import GaiaResponseConfig
 from .synthetic import JointData
@@ -63,13 +68,37 @@ class PosteriorSamples:
         return out
 
 
+#: Nuisance terms that inflate a channel's variance rather than shift its model.
+#: ``joint_loglike`` carries the ``log(variance)`` penalty that bounds them, which
+#: is the reason the sampler uses the likelihood rather than the chi-square.
+JITTER_PARAMETER_NAMES = ("gaia_jitter_mas", "rv_jitter_kms")
+
+
 def _log_posterior(theta, names, base, data, response, lower, upper) -> float:
     if np.any(theta < lower) or np.any(theta > upper):
         return -np.inf
-    params = replace(base, **{n: float(v) for n, v in zip(names, theta)})
+
+    binary_updates = {}
+    sigma_response = None
+    jitter = {"gaia_jitter_mas": 0.0, "rv_jitter_kms": 0.0}
+    for name, value in zip(names, theta):
+        if name in JITTER_PARAMETER_NAMES:
+            jitter[name] = float(value)
+        elif name in RESPONSE_PARAMETER_NAMES:
+            sigma_response = float(value)
+        else:
+            binary_updates[name] = float(value)
+
+    params = replace(base, **binary_updates)
+    if sigma_response is not None:
+        response = replace(response, sigma_mas=sigma_response)
     try:
         params.validate()
-        return joint_loglike(params, data, response)
+        return joint_loglike(
+            params, data, response,
+            gaia_jitter_mas=jitter["gaia_jitter_mas"],
+            rv_jitter_kms=jitter["rv_jitter_kms"],
+        )
     except (ValueError, RuntimeError):
         return -np.inf
 
@@ -101,9 +130,27 @@ def sample_posterior(
     if stretch_a <= 1.0:
         raise ValueError("stretch_a must be > 1")
 
-    bounds = np.array([_bounds_for(n, initial) for n in names], dtype=float)
+    if any(n in RESPONSE_PARAMETER_NAMES for n in names) and gaia_response.mode == "photocentre":
+        raise ValueError("the photocentre response has no width to sample")
+
+    def bounds_of(name):
+        if name == "gaia_jitter_mas":
+            return 0.0, 10.0 * float(np.median(data.gaia_al.sigma_mas))
+        if name == "rv_jitter_kms":
+            return 0.0, 10.0 * float(np.median(data.sb2_rv.sigma_kms))
+        return _bounds_for(name, initial, gaia_response.sigma_mas)
+
+    def centre_of(name):
+        if name in JITTER_PARAMETER_NAMES:
+            # Start just off zero so the walker ball is not pinned to the bound.
+            return 0.01 * bounds_of(name)[1]
+        if name in RESPONSE_PARAMETER_NAMES:
+            return float(gaia_response.sigma_mas)
+        return float(getattr(initial, name))
+
+    bounds = np.array([bounds_of(n) for n in names], dtype=float)
     lower, upper = bounds[:, 0], bounds[:, 1]
-    centre = np.array([float(getattr(initial, n)) for n in names], dtype=float)
+    centre = np.array([centre_of(n) for n in names], dtype=float)
 
     rng = np.random.default_rng(seed)
     scale = np.where(np.abs(centre) > 0, np.abs(centre), 1.0) * ball_fraction

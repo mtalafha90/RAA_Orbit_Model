@@ -128,6 +128,37 @@ def test_flat_respects_burn_in_and_thinning():
         posterior.flat(thin=0)
 
 
+def test_response_width_can_be_sampled_not_only_fitted():
+    """fit_joint can free the width, so the sampler must be able to as well."""
+    truth, data, response = _case()
+    posterior = sample_posterior(data, truth, response,
+                                 free_names=("m1_msun", "sigma_response_mas"),
+                                 n_walkers=8, n_steps=200, n_burn=80, seed=0)
+    width = posterior.summary()["sigma_response_mas"]
+    assert width["median"] == pytest.approx(SIGMA, rel=0.1)
+
+
+def test_sampling_a_width_is_rejected_for_the_photocentre_model():
+    truth, data, _ = _case()
+    with pytest.raises(ValueError, match="no width to sample"):
+        sample_posterior(data, truth, GaiaResponseConfig("photocentre"),
+                         free_names=("m1_msun", "sigma_response_mas"),
+                         n_walkers=8, n_steps=20, n_burn=5)
+
+
+def test_jitter_terms_are_sampleable_and_stay_small_without_excess_noise():
+    """The log-variance penalty in the likelihood is what bounds these."""
+    truth, data, response = _case()
+    posterior = sample_posterior(data, truth, response,
+                                 free_names=("m1_msun", "gaia_jitter_mas", "rv_jitter_kms"),
+                                 n_walkers=8, n_steps=200, n_burn=80, seed=0)
+    summary = posterior.summary()
+    # The synthetic data carry no excess noise, so both jitters should be
+    # driven well below the quoted per-epoch uncertainties rather than running away.
+    assert 0.0 <= summary["gaia_jitter_mas"]["median"] < float(np.median(data.gaia_al.sigma_mas))
+    assert 0.0 <= summary["rv_jitter_kms"]["median"] < float(np.median(data.sb2_rv.sigma_kms))
+
+
 def test_masses_and_parallax_are_correlated_in_the_posterior():
     """The degeneracy structure a point estimate cannot report."""
     truth, data, response = _case()
